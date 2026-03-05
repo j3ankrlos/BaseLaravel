@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
             ShiftSeeder::class,
             ContractTypeSeeder::class,
             PayrollTypeSeeder::class,
+            UnitSeeder::class,
+            // VeterinarianSeeder y EmployeeSeeder se pueden añadir si se requiere data inicial
         ]);
     }
 }
