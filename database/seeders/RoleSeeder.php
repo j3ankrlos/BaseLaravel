@@ -48,9 +48,26 @@ class RoleSeeder extends Seeder
          * 3. CREACIÓN Y CONFIGURACIÓN DE ROLES
          * Los roles agrupan permisos. El 'Super Admin' se maneja como un rol de acceso total.
          */
-        $roleAdmin = Role::updateOrCreate(['name' => 'Super Admin']);
-        // El Super Admin siempre obtiene todos los permisos existentes dinámicamente
-        $roleAdmin->syncPermissions(Permission::all());
+        $roles = [
+            'Super Admin',
+            'Admin',
+            'Supervisor',
+            'Encargado',
+            'Veterinario',
+            'Analista',
+        ];
+
+        foreach ($roles as $roleName) {
+            $role = Role::updateOrCreate(['name' => $roleName]);
+            
+            // Si es Super Admin, le damos todo (como antes)
+            if ($roleName === 'Super Admin') {
+                $role->syncPermissions(Permission::all());
+            } else {
+                // Para los demás roles, asignamos permisos básicos por ahora (ej. ver dashboard)
+                $role->syncPermissions(['ver dashboard']);
+            }
+        }
 
         /**
          * 4. GENERACIÓN DE USUARIO ADMINISTRADOR INICIAL
@@ -65,7 +82,7 @@ class RoleSeeder extends Seeder
             ]
         );
 
-        // Asignamos el rol al usuario (Spatie se encarga de las relaciones en las tablas pivote)
-        $admin->assignRole($roleAdmin);
+        // Asignamos el rol al usuario
+        $admin->assignRole('Super Admin');
     }
 }
