@@ -15,6 +15,7 @@ class ShiftSeeder extends Seeder
         $shifts = [
             [
                 'code' => 'T1',
+                'name' => 'Turno Diurno',
                 'working_day' => 'D',
                 'start_time' => '07:30:00',
                 'end_time' => '16:00:00',
@@ -23,6 +24,7 @@ class ShiftSeeder extends Seeder
             ],
             [
                 'code' => 'T2',
+                'name' => 'Turno Mixto',
                 'working_day' => 'DN',
                 'start_time' => '15:00:00',
                 'end_time' => '23:00:00',
@@ -31,6 +33,7 @@ class ShiftSeeder extends Seeder
             ],
             [
                 'code' => 'T3',
+                'name' => 'Turno Nocturno',
                 'working_day' => 'N',
                 'start_time' => '23:00:00',
                 'end_time' => '07:00:00',

@@ -20,6 +20,18 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
     Route::get('/users', UserManagement::class)->name('users');
+    Route::get('/roles', \App\Livewire\RoleManagement::class)->name('roles');
+    Route::get('/permissions', \App\Livewire\PermissionManagement::class)->name('permissions');
+    
+    Route::get('/employees', \App\Livewire\EmployeeManagement::class)->name('employees');
+    Route::get('/attendance', \App\Livewire\AttendanceManagement::class)->name('attendance');
+    Route::get('/incidents', \App\Livewire\IncidentManagement::class)->name('incidents');
+    Route::get('/warehouse/a002', \App\Livewire\WarehouseA002Management::class)->name('warehouse.a002');
+    Route::get('/warehouse/a006', \App\Livewire\WarehouseA006Management::class)->name('warehouse.a006');
+    Route::get('/warehouse/requests', \App\Livewire\TransferRequestManagement::class)->name('warehouse.requests');
+    Route::get('/certificates', \App\Livewire\CertificateManagement::class)->name('certificates.index');
+    Route::get('/certificates/create', \App\Livewire\CertificateCreate::class)->name('certificates.create');
+    Route::get('/certificates/causes', \App\Livewire\DeathCauseManagement::class)->name('certificates.causes');
 
     Route::post('/logout', function () {
         Auth::logout();

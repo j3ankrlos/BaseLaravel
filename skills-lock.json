@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "laravel-permission-development": {
+      "source": "spatie/laravel-permission",
+      "sourceType": "github",
+      "computedHash": "d9c7992cd16e18d8cddc60c71d7fa9294421d3ef0a58eb8d9218fceb39c8e28b"
+    },
+    "modern-frontend-design": {
+      "source": "deveshpunjabi/modern-frontend-skill",
+      "sourceType": "github",
+      "computedHash": "1c608565f5df3b15379687f1ac0475495170e0a1ad99907152ef219b767ad477"
+    }
+  }
+}

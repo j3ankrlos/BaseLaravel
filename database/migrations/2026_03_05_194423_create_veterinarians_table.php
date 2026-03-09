@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('registration_status')->nullable(); // EstadoRegistro
             $table->foreignId('unit_id')->nullable()->constrained('units')->onDelete('set null'); // Unidad
             $table->string('initials')->nullable(); // Siglas
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade'); // Relación con Empleado
             $table->timestamps();
         });
     }

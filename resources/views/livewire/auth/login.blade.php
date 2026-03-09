@@ -6,11 +6,11 @@
 
     <form wire:submit.prevent="login">
         <div class="mb-3">
-            <label class="form-label fw-semibold">Correo Electrónico</label>
+            <label class="form-label fw-semibold">Nombre de Usuario</label>
             <div class="input-group">
-                <span class="input-group-text bg-light border-end-0"><i class="ph ph-envelope"></i></span>
-                <input wire:model="email" type="email" class="form-control border-start-0 bg-light @error('email') is-invalid @enderror" placeholder="ejemplo@correo.com">
-                @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <span class="input-group-text bg-light border-end-0"><i class="ph ph-user"></i></span>
+                <input wire:model="username" type="text" class="form-control border-start-0 bg-light @error('username') is-invalid @enderror" placeholder="Ingrese su usuario">
+                @error('username') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>
 

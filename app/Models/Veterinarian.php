@@ -11,6 +11,12 @@ class Veterinarian extends Model
         'ministry_code',
         'registration_status',
         'unit_id',
+        'employee_id',
         'initials'
     ];
+
+    public function employee()
+    {
+        return $this->hasOne(Employee::class);
+    }
 }

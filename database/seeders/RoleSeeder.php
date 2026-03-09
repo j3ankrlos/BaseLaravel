@@ -26,17 +26,26 @@ class RoleSeeder extends Seeder
          * Esto permite que el sistema crezca sin necesidad de refactorizar la lógica de seguridad.
          */
         $permissions = [
-            // Permisos de Navegación y Dashboard
+            // Dashboard y Navegación
             'ver dashboard',
             
-            // Permisos de Seguridad y Usuarios
-            'ver usuarios',
-            'crear usuarios',
-            'editar usuarios',
-            'eliminar usuarios',
+            // Gestión de Usuarios y Seguridad
+            'ver usuarios', 'crear usuarios', 'editar usuarios', 'eliminar usuarios',
+            'ver roles', 'crear roles', 'editar roles', 'eliminar roles',
+            'ver permisos', 'crear permisos', 'editar permisos', 'eliminar permisos',
             
-            // Espacio para futuros módulos (Escalabilidad)
-            // 'gestionar cerdos', 'ver reportes', 'gestionar inventario'
+            // Gestión de Personal
+            'ver empleados', 'crear empleados', 'editar empleados', 'eliminar empleados',
+            'ver asistencias', 'registrar asistencias', 'editar asistencias', 'eliminar asistencias',
+            'ver incidencias', 'registrar incidencias', 'editar incidencias', 'eliminar incidencias',
+            
+            // Gestión de Almacén e Inventario
+            'ver inventario', 'gestionar inventario', 'registrar consumos',
+            'ver solicitudes traspaso', 'crear solicitudes traspaso', 'gestionar solicitudes traspaso',
+            
+            // Gestión Médica (Certificados)
+            'ver certificados', 'crear certificados', 'eliminar certificados',
+            'ver causas muerte', 'crear causas muerte', 'editar causas muerte', 'eliminar causas muerte',
         ];
 
         // Creamos cada permiso en la base de datos

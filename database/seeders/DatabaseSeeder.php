@@ -24,7 +24,9 @@ class DatabaseSeeder extends Seeder
             ContractTypeSeeder::class,
             PayrollTypeSeeder::class,
             UnitSeeder::class,
-            // VeterinarianSeeder y EmployeeSeeder se pueden añadir si se requiere data inicial
+            LocationSeeder::class,
+            AttendanceStatusSeeder::class,
+            EmployeeSeeder::class,
         ]);
     }
 }

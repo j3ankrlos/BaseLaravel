@@ -8,12 +8,12 @@ use Livewire\Component;
 
 class Login extends Component
 {
-    public string $email = '';
+    public string $username = '';
     public string $password = '';
     public bool $remember = false;
 
     protected $rules = [
-        'email' => 'required|email',
+        'username' => 'required',
         'password' => 'required',
     ];
 
@@ -21,9 +21,18 @@ class Login extends Component
     {
         $this->validate();
 
-        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        // Intentar loguear con el campo 'username'
+        if (!Auth::attempt(['username' => $this->username, 'password' => $this->password], $this->remember)) {
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'username' => __('auth.failed'),
+            ]);
+        }
+
+        // Verificar si el usuario está activo (status_id = 1)
+        if (Auth::user()->status_id !== 1) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'username' => 'Esta cuenta se encuentra inactiva. Contacte al administrador.',
             ]);
         }
 
