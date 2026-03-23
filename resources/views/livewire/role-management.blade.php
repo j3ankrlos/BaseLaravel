@@ -47,7 +47,7 @@
                     </tr>
                 </thead>
                 <tbody class="border-0">
-                    @forelse($roles as $role)
+                    @forelse ($roles as $role)
                         <tr wire:key="role-{{ $role->id }}" class="border-bottom border-light">
                             <td class="text-muted small fs-6">#{{ $role->id }}</td>
                             <td>
@@ -65,7 +65,7 @@
                                 @php $permissions = $role->permissions; @endphp
                                 @if($permissions->count() > 0)
                                     <div class="d-flex flex-wrap gap-1">
-                                        @foreach($permissions->take(3) as $permission)
+                                        @foreach ($permissions->take(3) as $permission)
                                             <span class="badge bg-light text-dark border p-1 px-2" style="font-size: 0.7rem;">{{ $permission->name }}</span>
                                         @endforeach
                                         @if($permissions->count() > 3)
@@ -145,7 +145,7 @@
                                     <i class="ph ph-info fs-5"></i> Los permisos seleccionados definirán las acciones permitidas para este rol.
                                 </div>
                                 <div class="row g-2 overflow-auto" style="max-height: 250px;">
-                                    @foreach($this->allPermissions as $perm)
+                                    @foreach ($this->allPermissions as $perm)
                                         <div class="col-md-6 col-lg-4">
                                             <div class="form-check p-2 rounded-3 border bg-light h-100 d-flex align-items-center transition-all cursor-pointer permission-check-hover">
                                                 <input wire:model="selectedPermissions" class="form-check-input ms-0 me-3 mt-0 flex-shrink-0" type="checkbox" value="{{ $perm->name }}" id="perm-{{ $perm->id }}">

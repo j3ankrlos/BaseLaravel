@@ -282,144 +282,61 @@
                         <div class="nav-separator-line"></div>
                     </li>
 
-                    {{-- Selección Genética --}}
+                    {{-- Movimientos Hub (Central) --}}
                     <li class="nav-item">
-                        <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center" 
-                           href="#" data-submenu-toggle="geneticSubmenu">
+                        <a href="{{ route('inventory.movements') }}" class="nav-link {{ request()->routeIs('inventory.movements') ? 'active' : '' }} text-decoration-none py-3" wire:navigate style="border-left: 3px solid #0d6efd; background: rgba(13,110,253,0.05);">
+                            <i class="ph ph-arrows-merge fs-5 text-primary"></i>
+                            <span class="nav-text fw-bold">MOVIMIENTOS HUB</span>
+                            <span class="badge bg-primary ms-auto small">Central</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('inventory.list') }}" class="nav-link {{ request()->routeIs('inventory.list') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-database"></i>
+                            <span class="nav-text text-uppercase fw-bold">Vista General Inv.</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('inventory.traceability') }}" class="nav-link {{ request()->routeIs('inventory.traceability') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-fingerprint"></i>
+                            <span class="nav-text text-uppercase fw-bold">Trazabilidad Total</span>
+                        </a>
+                    </li>
+
+                    {{-- SECCIÓN GENÉTICA Y REPRODUCCIÓN --}}
+                    <li class="nav-item">
+                        <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center {{ request()->is('genetic-selection*') ? 'active' : '' }}" 
+                           href="#" data-submenu-toggle="geneticSubmenu" aria-expanded="{{ request()->is('genetic-selection*') ? 'true' : 'false' }}">
                             <div class="d-flex align-items-center">
                                 <i class="ph ph-dna"></i>
                                 <span class="nav-text">Selección Genética</span>
                             </div>
                             <i class="ph ph-caret-down menu-arrow nav-text"></i>
                         </a>
-                        <div class="submenu" id="geneticSubmenu">
+                        <div class="submenu {{ request()->is('genetic-selection*') ? 'show' : '' }}" id="geneticSubmenu">
                             <ul class="nav flex-column ps-3">
                                 <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
+                                    <a href="{{ route('genetics.births.index') }}" class="nav-link {{ request()->routeIs('genetics.births.index') ? 'active' : '' }} text-decoration-none" wire:navigate>
                                         <i class="ph ph-baby"></i>
-                                        <span class="nav-text">Partos</span>
+                                        <span class="nav-text">Listado de Partos</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-tree-structure"></i>
-                                        <span class="nav-text">Pedigree</span>
+                                    <a href="{{ route('genetics.births.create') }}" class="nav-link {{ request()->routeIs('genetics.births.create') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                                        <i class="ph ph-plus-circle"></i>
+                                        <span class="nav-text">Registrar Parto</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('genetics.births.import') }}" class="nav-link {{ request()->routeIs('genetics.births.import') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                                        <i class="ph ph-file-arrow-up"></i>
+                                        <span class="nav-text">Importar Excel</span>
                                     </a>
                                 </li>
                             </ul>
                         </div>
-                    </li>
-
-                    {{-- Recria --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center" 
-                           href="#" data-submenu-toggle="recriaSubmenu">
-                            <div class="d-flex align-items-center">
-                                <i class="ph ph-chart-line-up"></i>
-                                <span class="nav-text">Recria</span>
-                            </div>
-                            <i class="ph ph-caret-down menu-arrow nav-text"></i>
-                        </a>
-                        <div class="submenu" id="recriaSubmenu">
-                            <ul class="nav flex-column ps-3">
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-sign-in"></i>
-                                        <span class="nav-text">Ingresos</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-arrows-left-right"></i>
-                                        <span class="nav-text">Movimientos</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-
-                    {{-- Levante --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center" 
-                           href="#" data-submenu-toggle="levanteSubmenu">
-                            <div class="d-flex align-items-center">
-                                <i class="ph ph-trend-up"></i>
-                                <span class="nav-text">Levante</span>
-                            </div>
-                            <i class="ph ph-caret-down menu-arrow nav-text"></i>
-                        </a>
-                        <div class="submenu" id="levanteSubmenu">
-                            <ul class="nav flex-column ps-3">
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-sign-in"></i>
-                                        <span class="nav-text">Ingresos</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-arrows-left-right"></i>
-                                        <span class="nav-text">Movimientos</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-
-                    {{-- Pubertad --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center" 
-                           href="#" data-submenu-toggle="pubertadSubmenu">
-                            <div class="d-flex align-items-center">
-                                <i class="ph ph-heart"></i>
-                                <span class="nav-text">Pubertad</span>
-                            </div>
-                            <i class="ph ph-caret-down menu-arrow nav-text"></i>
-                        </a>
-                        <div class="submenu" id="pubertadSubmenu">
-                            <ul class="nav flex-column ps-3">
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-sign-in"></i>
-                                        <span class="nav-text">Ingresos</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-arrows-left-right"></i>
-                                        <span class="nav-text">Movimientos</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-flame"></i>
-                                        <span class="nav-text">Celos</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#" class="nav-link text-decoration-none">
-                                        <i class="ph ph-lightning"></i>
-                                        <span class="nav-text">Activaciones</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-
-                    {{-- Ventas --}}
-                    <li class="nav-item">
-                        <a href="#" class="nav-link text-decoration-none">
-                            <i class="ph ph-shopping-cart"></i>
-                            <span class="nav-text">Ventas</span>
-                        </a>
-                    </li>
-
-                    {{-- Mortalidad --}}
-                    <li class="nav-item">
-                        <a href="#" class="nav-link text-decoration-none">
-                            <i class="ph ph-skull"></i>
-                            <span class="nav-text">Mortalidad</span>
-                        </a>
                     </li>
                 </ul>
             </div>
@@ -603,6 +520,30 @@
                 })
             });
         });
+
+        // Manejo Global de Decimales (Punto por Coma) - Inicializar solo una vez
+        if (!window.decimalMaskInitialized) {
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '.' || e.key === 'Decimal') {
+                    const target = e.target;
+                    if (target && target.classList && target.classList.contains('decimal-mask')) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        
+                        const start = target.selectionStart;
+                        const end = target.selectionEnd;
+                        const value = target.value;
+                        
+                        target.value = value.substring(0, start) + ',' + value.substring(end);
+                        target.selectionStart = target.selectionEnd = start + 1;
+                        
+                        // Disparar evento de entrada para Livewire
+                        target.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            });
+            window.decimalMaskInitialized = true;
+        }
     </script>
 </body>
 </html>

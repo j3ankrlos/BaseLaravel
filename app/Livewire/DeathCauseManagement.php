@@ -8,6 +8,7 @@ use App\Models\DeathCause;
 use App\Models\DeathSystem;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
 use Illuminate\Validation\Rule;
 
 class DeathCauseManagement extends Component
@@ -56,7 +57,7 @@ class DeathCauseManagement extends Component
     {
         $this->resetValidation();
         $this->reset(['causeId', 'name', 'death_system_id']);
-        $this->dispatch('open-modal', id: 'causeFormModal');
+        $this->dispatch('open-modal', ['id' => 'causeFormModal']);
     }
 
     public function edit($id)
@@ -66,7 +67,7 @@ class DeathCauseManagement extends Component
         $this->causeId = $cause->id;
         $this->name = $cause->name;
         $this->death_system_id = $cause->death_system_id;
-        $this->dispatch('open-modal', id: 'causeFormModal');
+        $this->dispatch('open-modal', ['id' => 'causeFormModal']);
     }
 
     public function save()
@@ -88,7 +89,7 @@ class DeathCauseManagement extends Component
             $title = 'Causa Creada';
         }
 
-        $this->dispatch('close-modal', id: 'causeFormModal');
+        $this->dispatch('close-modal', ['id' => 'causeFormModal']);
         $this->dispatch('notify', [
             'icon' => 'success',
             'title' => 'Éxito',
@@ -135,6 +136,7 @@ class DeathCauseManagement extends Component
         return DeathSystem::orderBy('name')->get();
     }
 
+    #[Title('Gestión de Causas de Muerte')]
     public function render()
     {
         $causes = DeathCause::with('system')
@@ -144,6 +146,6 @@ class DeathCauseManagement extends Component
 
         return view('livewire.death-cause-management', [
             'causes' => $causes
-        ])->title('Gestión de Causas de Muerte');
+        ]);
     }
 }

@@ -17,10 +17,12 @@ use App\Models\AnimalStatus;
 use App\Models\Barn;
 use App\Models\BarnSection;
 use Livewire\Attributes\Computed;
+use App\Traits\HandlesDecimals;
 
 class CertificateCreate extends Component
 {
     use WithFileUploads;
+    use HandlesDecimals;
 
     // Secciones del Formulario
     public $fecha_registro;
@@ -196,7 +198,7 @@ class CertificateCreate extends Component
         'lote' => 'required|string',
         'raza' => 'required|string',
         'estatus' => 'required|string',
-        'peso' => 'required|numeric',
+        'peso' => 'required',
         'sexo' => 'required|string',
         'nave' => 'required|string',
         'seccion' => 'required|string',
@@ -249,6 +251,8 @@ class CertificateCreate extends Component
         $tatuajePath = $this->tatuaje_photo ? $this->tatuaje_photo->store('certificates/photos', 'public') : null;
         $otraPath = $this->otra_photo ? $this->otra_photo->store('certificates/photos', 'public') : null;
 
+        $parsedPeso = $this->parseDecimal($this->peso);
+
         Certificate::create([
             'user_id' => Auth::id(),
             'fecha_registro' => $this->fecha_registro,
@@ -262,7 +266,7 @@ class CertificateCreate extends Component
             'lote' => $this->lote,
             'raza' => $this->raza,
             'estatus' => $this->estatus,
-            'peso' => $this->peso,
+            'peso' => $parsedPeso,
             'sexo' => $this->sexo,
             'nave' => $this->nave,
             'seccion' => $this->seccion,

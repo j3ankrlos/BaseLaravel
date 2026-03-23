@@ -39,7 +39,7 @@ class PermissionManagement extends Component
     {
         $this->resetValidation();
         $this->reset(['permissionId', 'name', 'guard_name']);
-        $this->dispatch('open-modal', id: 'permissionFormModal');
+        $this->dispatch('open-modal', ['id' => 'permissionFormModal']);
     }
 
     public function edit($id)
@@ -49,7 +49,7 @@ class PermissionManagement extends Component
         $this->permissionId = $permission->id;
         $this->name = $permission->name;
         $this->guard_name = $permission->guard_name;
-        $this->dispatch('open-modal', id: 'permissionFormModal');
+        $this->dispatch('open-modal', ['id' => 'permissionFormModal']);
     }
 
     public function save()
@@ -71,7 +71,7 @@ class PermissionManagement extends Component
             $title = 'Permiso Creado';
         }
 
-        $this->dispatch('close-modal', id: 'permissionFormModal');
+        $this->dispatch('close-modal', ['id' => 'permissionFormModal']);
         $this->dispatch('notify', [
             'icon' => 'success',
             'title' => 'Éxito',

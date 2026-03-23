@@ -31,7 +31,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($products as $product)
+                        @forelse ($products as $product)
                             <tr>
                                 <td><span class="badge bg-secondary">{{ $product->Codigo }}</span></td>
                                 <td class="text-wrap" style="max-width: 250px;">{{ $product->Producto }}</td>
@@ -81,7 +81,7 @@
                         
                         @if(strlen($productSearch ?? '') >= 2)
                             <div class="position-absolute w-100 bg-white border border-primary rounded shadow mt-1" style="z-index: 1050; max-height: 250px; overflow-y: auto;">
-                                @forelse($searchResults as $result)
+                                @forelse ($searchResults as $result)
                                     <div class="p-3 border-bottom hover-bg-light cursor-pointer" style="cursor: pointer;" wire:click="selectProduct({{ $result->id }})">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
@@ -119,7 +119,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($requestItems as $index => $item)
+                                    @forelse ($requestItems as $index => $item)
                                         <tr>
                                             <td class="text-center fw-bold text-muted">{{ $index + 1 }}</td>
                                             <td><span class="badge bg-light text-dark border">{{ $item['codigo'] }}</span></td>

@@ -29,6 +29,11 @@ class Employee extends Model
         'status'
     ];
 
+    public function getNameAttribute()
+    {
+        return "{$this->first_names} {$this->last_names}";
+    }
+
     public function state()
     {
         return $this->belongsTo(State::class);

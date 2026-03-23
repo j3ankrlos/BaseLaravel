@@ -22,8 +22,8 @@ return new class extends Migration
             $table->string('vet_cedula');
             $table->string('vet_nombre');
             $table->string('vet_apellido');
-            $table->string('vet_colegio_medico_codigo');
-            $table->string('vet_ministerio_codigo');
+            $table->string('vet_colegio_medico_codigo')->nullable();
+            $table->string('vet_ministerio_codigo')->nullable();
             $table->string('vet_area_reproduccion');
 
             // Datos del Animal

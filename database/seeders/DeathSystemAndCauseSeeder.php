@@ -225,8 +225,6 @@ class DeathSystemAndCauseSeeder extends Seeder
             ['id' => 187, 'name' => 'ULCERA INTESTINAL', 'death_system_id' => 3],
             ['id' => 188, 'name' => 'UROLITIASIS', 'death_system_id' => 17],
             ['id' => 189, 'name' => 'VÓMITO', 'death_system_id' => 3],
-            ['id' => 193, 'name' => 'SACRIFICADA POSTRADA', 'death_system_id' => 6],
-            ['id' => 194, 'name' => 'SACRIFICADA PODALES', 'death_system_id' => 6],
             ['id' => 195, 'name' => 'HISTERECTOMÍA', 'death_system_id' => 13],
         ];
 

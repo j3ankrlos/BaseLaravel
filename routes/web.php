@@ -33,6 +33,22 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/certificates/create', \App\Livewire\CertificateCreate::class)->name('certificates.create');
     Route::get('/certificates/causes', \App\Livewire\DeathCauseManagement::class)->name('certificates.causes');
 
+    // Selección Genética
+    Route::get('/genetic-selection/births', \App\Livewire\GeneticSelection\BirthRegistration::class)->name('genetics.births.create');
+    Route::get('/genetic-selection/list', \App\Livewire\GeneticSelection\BirthManagement::class)->name('genetics.births.index');
+    Route::get('/genetic-selection/pedigree/{id}', \App\Livewire\GeneticSelection\BirthPedigree::class)->name('genetics.births.pedigree');
+    Route::get('/genetic-selection/pedigree-preview/{room}', \App\Livewire\GeneticSelection\PedigreePreview::class)->name('genetics.births.pedigree-preview');
+    Route::get('/genetic-selection/import', \App\Livewire\GeneticSelection\BirthImport::class)->name('genetics.births.import');
+    Route::get('/genetic-selection/edit/{id}', \App\Livewire\GeneticSelection\BirthEdit::class)->name('genetics.births.edit');
+
+    // Recría
+    Route::get('/rearing/entries', \App\Livewire\Rearing\RearingEntryManagement::class)->name('rearing.entries');
+
+    // Operaciones Centralizadas / Movement Hub
+    Route::get('/inventory/movements', \App\Livewire\Inventory\MovementOperations::class)->name('inventory.movements');
+    Route::get('/inventory/list', \App\Livewire\Inventory\InventoryListView::class)->name('inventory.list');
+    Route::get('/inventory/traceability', \App\Livewire\Inventory\TraceabilityViewer::class)->name('inventory.traceability');
+
     Route::post('/logout', function () {
         Auth::logout();
         session()->invalidate();

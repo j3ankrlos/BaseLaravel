@@ -86,8 +86,10 @@ class RoleSeeder extends Seeder
             ['email' => 'admin@granja.com'],
             [
                 'name' => 'Administrador Sistema',
-                'password' => Hash::make('password123!'), // Encriptación BCrypt robusta
+                'username' => 'admin', // Clave para el login
+                'password' => Hash::make('password123!'),
                 'email_verified_at' => now(),
+                'status_id' => 1, // Usuario activo
             ]
         );
 

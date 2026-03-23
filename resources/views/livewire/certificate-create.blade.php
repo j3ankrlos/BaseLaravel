@@ -94,7 +94,7 @@
                                 <label class="form-label fw-semibold small">Estatus</label>
                                 <select wire:model="estatus" class="form-select bg-light">
                                     <option value="">Seleccione...</option>
-                                    @foreach($this->animalStatuses as $status)
+                                    @foreach ($this->animalStatuses as $status)
                                         <option value="{{ $status->name }}">{{ $status->name }}</option>
                                     @endforeach
                                 </select>
@@ -103,7 +103,7 @@
                             
                             <div class="col-md-2">
                                 <label class="form-label fw-semibold small">Peso</label>
-                                <input type="number" step="0.01" wire:model="peso" class="form-control bg-light">
+                                <input type="text" wire:model="peso" class="form-control bg-light decimal-mask" placeholder="0,00">
                                 @error('peso') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
                             <div class="col-md-3">
@@ -119,7 +119,7 @@
                                 <label class="form-label fw-semibold small">Nave</label>
                                 <select wire:model.live="nave" class="form-select bg-light">
                                     <option value="">Seleccione...</option>
-                                    @foreach($this->barns as $bn)
+                                    @foreach ($this->barns as $bn)
                                         <option value="{{ $bn->name }}" wire:key="bn-{{ $bn->id }}">{{ $bn->name }}</option>
                                     @endforeach
                                 </select>
@@ -129,7 +129,7 @@
                                 <label class="form-label fw-semibold small">Sección</label>
                                 <select wire:model="seccion" class="form-select bg-light" {{ empty($nave) ? 'disabled' : '' }}>
                                     <option value="">Seleccione...</option>
-                                    @foreach($this->barnSections as $sec)
+                                    @foreach ($this->barnSections as $sec)
                                         <option value="{{ $sec->name }}" wire:key="sec-{{ $sec->id }}">{{ $sec->name }}</option>
                                     @endforeach
                                 </select>
@@ -145,7 +145,7 @@
                                 <label class="form-label fw-semibold small">Tipo de Muerte</label>
                                 <select wire:model="tipo_muerte" class="form-select bg-light">
                                     <option value="">Seleccione...</option>
-                                    @foreach($this->deathTypes as $type)
+                                    @foreach ($this->deathTypes as $type)
                                         <option value="{{ $type->name }}">{{ $type->name }}</option>
                                     @endforeach
                                 </select>
@@ -160,7 +160,7 @@
                                 <input type="hidden" wire:model="causa_muerte">
                                 @if(!empty($causeResults))
                                     <div class="position-absolute w-100 mt-1 shadow-lg z-3 border border-light rounded overflow-hidden bg-white" style="left: 0; right: 0;">
-                                        @foreach($causeResults as $cause)
+                                        @foreach ($causeResults as $cause)
                                             <button type="button" wire:click="selectCause({{ $cause->id }})" class="btn btn-link text-start text-dark w-100 p-2 border-bottom border-light text-decoration-none dropdown-item-hover">
                                                 <div class="fw-bold text-dark small">{{ $cause->name }}</div>
                                                 <div class="text-muted" style="font-size: 0.65rem;">{{ $cause->system->name }}</div>
@@ -187,7 +187,7 @@
 
                                 @if(!empty($reportadoResults))
                                     <div class="position-absolute w-100 mt-1 shadow-lg z-3 border border-light rounded overflow-hidden bg-white" style="left: 0; right: 0;">
-                                        @foreach($reportadoResults as $emp)
+                                        @foreach ($reportadoResults as $emp)
                                             <button type="button" wire:click="selectReportado('{{ $emp['name'] }}')" class="btn btn-link text-start text-dark w-100 p-3 border-bottom border-light text-decoration-none dropdown-item-hover">
                                                 <div class="fw-bold text-dark">{{ $emp['name'] }}</div>
                                                 <div class="text-muted small" style="font-size: 0.65rem;">Supervisor/Encargado</div>

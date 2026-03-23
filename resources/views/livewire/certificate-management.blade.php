@@ -42,7 +42,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($certificates as $cert)
+                    @forelse ($certificates as $cert)
                         <tr>
                             <td class="ps-4">
                                 <span class="fw-semibold">{{ \Carbon\Carbon::parse($cert->fecha_registro)->format('d/m/Y') }}</span>
@@ -75,9 +75,24 @@
                                     <button class="btn btn-sm btn-white border" title="Ver detalle">
                                         <i class="ph ph-eye"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-white border" title="Descargar PDF">
-                                        <i class="ph ph-file-pdf"></i>
-                                    </button>
+                                    @php
+                                        // Determine if PDF exists to show the View button instead of regenerate
+                                        $fileName = "Certificado_Muerte_{$cert->animal_id}_{$cert->id}.pdf";
+                                        $pdfExists = \Illuminate\Support\Facades\Storage::disk('public')->exists("certificates_pdf/" . $fileName);
+                                    @endphp
+                                    
+                                    @if($pdfExists)
+                                        <a href="{{ asset('storage/certificates_pdf/' . $fileName) }}?v={{ time() }}" target="_blank" class="btn btn-sm btn-light border text-primary" title="Ver PDF Generado">
+                                            <i class="ph ph-eye"></i>
+                                        </a>
+                                        <button wire:click="exportPdf({{ $cert->id }})" class="btn btn-sm btn-white border" title="Regenerar PDF">
+                                            <i class="ph ph-arrows-clockwise"></i>
+                                        </button>
+                                    @else
+                                        <button wire:click="exportPdf({{ $cert->id }})" class="btn btn-sm btn-white border text-danger" title="Generar PDF">
+                                            <i class="ph ph-file-pdf"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -109,4 +124,15 @@
             width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
         }
     </style>
+
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('certificate-generated', (event) => {
+                const url = event[0].url;
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            });
+        });
+    </script>
 </div>

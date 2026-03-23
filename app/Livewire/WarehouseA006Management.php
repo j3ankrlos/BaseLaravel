@@ -6,6 +6,8 @@ use App\Models\WarehouseA006;
 use App\Models\TransferRequest;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use App\Models\WarehouseA002;
 
 class WarehouseA006Management extends Component
@@ -163,6 +165,7 @@ class WarehouseA006Management extends Component
         ]);
     }
 
+    #[Title('Almacén A006')]
     public function render()
     {
         $products = WarehouseA006::where('Codigo', 'like', '%' . $this->search . '%')
@@ -171,6 +174,6 @@ class WarehouseA006Management extends Component
 
         return view('livewire.warehouse-a006-management', [
             'products' => $products
-        ])->title('Almacén A006');
+        ]);
     }
 }

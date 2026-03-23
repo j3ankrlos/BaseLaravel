@@ -4,6 +4,8 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use App\Models\Employee;
 use App\Models\AssignedPost;
 use App\Models\Attendance;
@@ -176,6 +178,7 @@ class AttendanceManagement extends Component
         $this->resetPage();
     }
 
+    #[Title('Gestión de Asistencias')]
     public function render()
     {
         $employees = Employee::query()
@@ -228,6 +231,6 @@ class AttendanceManagement extends Component
             'shifts' => Shift::all(),
             'attendanceStatuses' => AttendanceStatus::where('active', true)->orderBy('id')->get(),
             'dailyAttendances' => $dailyAttendances,
-        ])->title('Gestión de Asistencias');
+        ]);
     }
 }

@@ -47,7 +47,7 @@
                     </tr>
                 </thead>
                 <tbody class="border-top-0">
-                    @forelse($incidents as $incident)
+                    @forelse ($incidents as $incident)
                         @php
                             $color = 'info';
                             $code = $incident->attendanceStatus->code;
@@ -135,7 +135,7 @@
 
                                     @if(count($employees) > 0)
                                         <div class="list-group mt-2 shadow-sm">
-                                            @foreach($employees as $emp)
+                                            @foreach ($employees as $emp)
                                                 <button type="button" wire:click="selectEmployee({{ $emp->id }})" 
                                                         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                                                     <div>
@@ -172,7 +172,7 @@
                                 <label class="form-label fw-bold">Tipo de Incidencia</label>
                                 <select wire:model="attendance_status_id" class="form-select @error('attendance_status_id') is-invalid @enderror">
                                     <option value="">Seleccione el tipo...</option>
-                                    @foreach($statuses as $st)
+                                    @foreach ($statuses as $st)
                                         <option value="{{ $st->id }}">{{ $st->code }} - {{ $st->description }}</option>
                                     @endforeach
                                 </select>

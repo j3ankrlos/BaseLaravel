@@ -8,6 +8,7 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Title;
 
 class RoleManagement extends Component
 {
@@ -50,7 +51,7 @@ class RoleManagement extends Component
     {
         $this->resetValidation();
         $this->reset(['roleId', 'name', 'guard_name', 'selectedPermissions']);
-        $this->dispatch('open-modal', id: 'roleFormModal');
+        $this->dispatch('open-modal', ['id' => 'roleFormModal']);
     }
 
     public function edit($id)
@@ -61,7 +62,7 @@ class RoleManagement extends Component
         $this->name = $role->name;
         $this->guard_name = $role->guard_name;
         $this->selectedPermissions = $role->permissions->pluck('name')->toArray();
-        $this->dispatch('open-modal', id: 'roleFormModal');
+        $this->dispatch('open-modal', ['id' => 'roleFormModal']);
     }
 
     public function save()
@@ -86,7 +87,7 @@ class RoleManagement extends Component
         // Professional synchronization according to skill (syncPermissions replaces all)
         $role->syncPermissions($this->selectedPermissions);
 
-        $this->dispatch('close-modal', id: 'roleFormModal');
+        $this->dispatch('close-modal', ['id' => 'roleFormModal']);
         $this->dispatch('notify', [
             'icon' => 'success',
             'title' => 'Éxito',
@@ -142,6 +143,7 @@ class RoleManagement extends Component
         }
     }
 
+    #[Title('Gestión de Roles')]
     public function render()
     {
         $roles = Role::with('permissions')
@@ -151,6 +153,6 @@ class RoleManagement extends Component
 
         return view('livewire.role-management', [
             'roles' => $roles
-        ])->title('Gestión de Roles');
+        ]);
     }
 }

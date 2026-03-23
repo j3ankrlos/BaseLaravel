@@ -37,7 +37,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($products as $product)
+                        @forelse ($products as $product)
                             <tr>
                                 <td><span class="badge bg-secondary">{{ $product->Codigo }}</span></td>
                                 <td class="text-wrap" style="max-width: 250px;">{{ $product->Producto }}</td>

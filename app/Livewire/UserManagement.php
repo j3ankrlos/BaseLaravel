@@ -9,6 +9,7 @@ use App\Models\Employee;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Title;
 use Illuminate\Support\Str;
 
 class UserManagement extends Component
@@ -48,7 +49,7 @@ class UserManagement extends Component
     {
         if (request()->has('create')) {
             $this->create();
-            $this->dispatch('open-modal', id: 'userFormModal');
+            $this->dispatch('open-modal', ['id' => 'userFormModal']);
         }
     }
 
@@ -56,7 +57,7 @@ class UserManagement extends Component
     {
         if ($value) {
             $this->create();
-            $this->dispatch('open-modal', id: 'userFormModal');
+            $this->dispatch('open-modal', ['id' => 'userFormModal']);
         }
     }
 
@@ -157,7 +158,7 @@ class UserManagement extends Component
         $user = User::updateOrCreate(['id' => $this->userId], $userData);
         $user->syncRoles([$this->role]);
 
-        $this->dispatch('close-modal', id: 'userFormModal');
+        $this->dispatch('close-modal', ['id' => 'userFormModal']);
         
         $this->dispatch('notify', [
             'icon' => 'success',
@@ -186,6 +187,7 @@ class UserManagement extends Component
         ]);
     }
 
+    #[Title('Gestión de Usuarios')]
     public function render()
     {
         $users = User::with('roles')
@@ -200,6 +202,6 @@ class UserManagement extends Component
         return view('livewire.user-management', [
             'users' => $users,
             'roles' => Role::all(),
-        ])->title('Gestión de Usuarios');
+        ]);
     }
 }

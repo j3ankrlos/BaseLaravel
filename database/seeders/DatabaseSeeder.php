@@ -26,7 +26,12 @@ class DatabaseSeeder extends Seeder
             UnitSeeder::class,
             LocationSeeder::class,
             AttendanceStatusSeeder::class,
-            EmployeeSeeder::class,
+            GeneticSeeder::class,
+            BarnSeeder::class,
+            CertificateRoleSeeder::class,
+            DeathSystemAndCauseSeeder::class,
+            DeathTypeAndStatusSeeder::class,
+            VeterinarianSeeder::class,
         ]);
     }
 }

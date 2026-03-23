@@ -38,7 +38,7 @@
                     <label class="form-label fw-semibold">Área Asignada</label>
                     <select wire:model.live="assigned_post_id" class="form-select bg-light border-0 px-3 py-2 rounded-3">
                         <option value="">Todas las Áreas</option>
-                        @foreach($assignedPosts as $post)
+                        @foreach ($assignedPosts as $post)
                             <option value="{{ $post->id }}">{{ $post->name }}</option>
                         @endforeach
                     </select>
@@ -48,7 +48,7 @@
                     <label class="form-label fw-semibold">Turno (Horario)</label>
                     <select wire:model.live="shift_id" class="form-select bg-light border-0 px-3 py-2 rounded-3">
                         <option value="">Todos los Turnos</option>
-                        @foreach($shifts as $shift)
+                        @foreach ($shifts as $shift)
                             <option value="{{ $shift->id }}">{{ $shift->name }}</option>
                         @endforeach
                     </select>
@@ -84,7 +84,7 @@
                     </tr>
                 </thead>
                 <tbody class="border-top-0">
-                    @forelse($employees as $employee)
+                    @forelse ($employees as $employee)
                         @php
                             $att = $dailyAttendances[$employee->id] ?? null;
                             $statusId = $att ? $att->attendance_status_id : null;
@@ -142,7 +142,7 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 overflow-auto" style="max-height: 300px;">
                                             <li><h6 class="dropdown-header small text-muted">Incidencias ({{ count($attendanceStatuses) }})</h6></li>
-                                            @foreach($attendanceStatuses as $st)
+                                            @foreach ($attendanceStatuses as $st)
                                                 <li>
                                                     <a class="dropdown-item py-2 d-flex justify-content-between align-items-center" href="#" wire:click.prevent="setStatus({{ $employee->id }}, {{ $st->id }})">
                                                         <span>{{ $st->description }}</span>

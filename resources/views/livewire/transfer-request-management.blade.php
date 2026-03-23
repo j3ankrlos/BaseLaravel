@@ -29,7 +29,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($requests as $req)
+                        @forelse ($requests as $req)
                             <tr>
                                 <td>
                                     <span class="badge bg-primary fs-6">{{ $req->folio ?? 'N/A' }}</span>
@@ -110,7 +110,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($requestDetails as $index => $detail)
+                                @foreach ($requestDetails as $index => $detail)
                                     <tr>
                                         <td class="text-center fw-bold text-muted small">{{ $index + 1 }}</td>
                                         <td><span class="badge bg-light text-dark border">{{ $detail['Codigo'] }}</span></td>

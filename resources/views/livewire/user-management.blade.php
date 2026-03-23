@@ -32,7 +32,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($users as $user)
+                    @forelse ($users as $user)
                         <tr>
                             <td class="ps-4">
                                 <div class="d-flex align-items-center">
@@ -113,7 +113,7 @@
                             
                             @if(!empty($employeeResults))
                                 <div class="position-absolute w-100 mt-1 shadow-lg z-3 border border-light rounded overflow-hidden bg-white" style="z-index: 1060;">
-                                    @foreach($employeeResults as $emp)
+                                    @foreach ($employeeResults as $emp)
                                         <button type="button" wire:click="selectEmployee({{ $emp->id }})" class="btn btn-link text-start text-dark w-100 p-3 border-bottom border-light text-decoration-none dropdown-item-hover">
                                             <div class="fw-bold text-dark">{{ $emp->first_names }} {{ $emp->last_names }}</div>
                                             <div class="text-muted small">Cód: {{ $emp->national_id }} | {{ $emp->position?->name ?? 'Sin Cargo' }}</div>
@@ -141,7 +141,7 @@
                                 <label class="form-label fw-semibold small text-uppercase">Rol de Sistema</label>
                                 <select wire:model="role" class="form-select bg-light @error('role') is-invalid @enderror">
                                     <option value="">Seleccione Rol</option>
-                                    @foreach($roles as $rol)
+                                    @foreach ($roles as $rol)
                                         <option value="{{ $rol->name }}">{{ $rol->name }}</option>
                                     @endforeach
                                 </select>
@@ -202,6 +202,15 @@
             if (modal) {
                 modal.hide();
             }
+
+            // Livewire re-renders the DOM after save, which can leave Bootstrap's
+            // backdrop orphaned. We clean it up manually to avoid a frozen/opaque screen.
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }, 300);
         });
     </script>
     @endscript

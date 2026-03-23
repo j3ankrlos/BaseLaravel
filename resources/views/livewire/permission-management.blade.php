@@ -47,7 +47,7 @@
                     </tr>
                 </thead>
                 <tbody class="border-0">
-                    @forelse($permissions as $permission)
+                    @forelse ($permissions as $permission)
                         <tr wire:key="perm-{{ $permission->id }}" class="border-bottom border-light">
                             <td class="text-muted small fs-6">#{{ $permission->id }}</td>
                             <td>

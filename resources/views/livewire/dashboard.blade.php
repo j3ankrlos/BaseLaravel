@@ -77,7 +77,7 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        @forelse($recentRequests as $req)
+                        @forelse ($recentRequests as $req)
                             <li class="list-group-item px-3 py-2 d-flex align-items-center justify-content-between border-bottom">
                                 <div class="d-flex align-items-start gap-2">
                                     <div class="mt-1">
@@ -129,7 +129,7 @@
                     <span class="badge bg-light text-muted fw-normal" style="font-size:0.65rem;">Top más usados</span>
                 </div>
                 <div class="card-body d-flex flex-column gap-2">
-                    @foreach($topModules as $module)
+                    @foreach ($topModules as $module)
                         <a href="{{ $module->url }}" wire:navigate class="shortcut-btn">
                             <i class="ph {{ $module->icon }} {{ $module->color_class }}"></i>
                             <span>{{ $module->display_name }}</span>

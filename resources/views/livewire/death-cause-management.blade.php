@@ -47,7 +47,7 @@
                     </tr>
                 </thead>
                 <tbody class="border-0">
-                    @forelse($causes as $cause)
+                    @forelse ($causes as $cause)
                         <tr wire:key="cause-{{ $cause->id }}" class="border-bottom border-light">
                             <td class="ps-4 text-muted small">#{{ $cause->id }}</td>
                             <td>
@@ -108,7 +108,7 @@
                             <label class="form-label fw-bold small text-uppercase">Sistema Involucrado</label>
                             <select wire:model="death_system_id" class="form-select bg-light border-0 py-2">
                                 <option value="">Seleccione sistema...</option>
-                                @foreach($this->deathSystems as $system)
+                                @foreach ($this->deathSystems as $system)
                                     <option value="{{ $system->id }}">{{ $system->name }}</option>
                                 @endforeach
                             </select>

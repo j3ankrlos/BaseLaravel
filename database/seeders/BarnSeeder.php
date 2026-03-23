@@ -13,16 +13,49 @@ class BarnSeeder extends Seeder
     public function run(): void
     {
         $barns = [
-            1 => 'STUD', 2 => 'DM1', 3 => 'DM2', 4 => 'G1', 5 => 'G2', 6 => 'G3', 7 => 'G4', 8 => 'G5', 9 => 'G6', 10 => 'G7', 11 => 'G8', 12 => 'G9', 13 => 'LA', 14 => 'LB', 15 => 'LE', 16 => 'M1', 17 => 'M2', 18 => 'M3', 19 => 'M4', 20 => 'M5', 21 => 'MP1', 22 => 'MP2', 23 => 'PASILLO', 24 => 'PUB1', 25 => 'PUB2', 26 => 'PUB2-D', 27 => 'PUB3', 28 => 'RECRIA'
+            ['id' => 1, 'name' => 'STUD', 'farm' => 'EST'],
+            ['id' => 2, 'name' => 'DM1', 'farm' => 'EST'],
+            ['id' => 3, 'name' => 'DM2', 'farm' => 'EXP'],
+            ['id' => 4, 'name' => 'G1', 'farm' => 'EST'],
+            ['id' => 5, 'name' => 'G2', 'farm' => 'EST'],
+            ['id' => 6, 'name' => 'G3', 'farm' => 'EST'],
+            ['id' => 7, 'name' => 'G4', 'farm' => 'EST'],
+            ['id' => 8, 'name' => 'G5', 'farm' => 'EST'],
+            ['id' => 9, 'name' => 'G6', 'farm' => 'EXP'],
+            ['id' => 10, 'name' => 'G7', 'farm' => 'EXP'],
+            ['id' => 11, 'name' => 'G8', 'farm' => 'EXP'],
+            ['id' => 12, 'name' => 'G9', 'farm' => 'EXP'],
+            ['id' => 13, 'name' => 'LA', 'farm' => 'EST'],
+            ['id' => 14, 'name' => 'LB', 'farm' => 'EST'],
+            ['id' => 15, 'name' => 'LE', 'farm' => 'EXP'],
+            ['id' => 16, 'name' => 'M1', 'farm' => 'EST'],
+            ['id' => 17, 'name' => 'M2', 'farm' => 'EST'],
+            ['id' => 18, 'name' => 'M3', 'farm' => 'EST'],
+            ['id' => 19, 'name' => 'M4', 'farm' => 'EXP'],
+            ['id' => 20, 'name' => 'M5', 'farm' => 'EXP'],
+            ['id' => 21, 'name' => 'MP1', 'farm' => 'EST'],
+            ['id' => 22, 'name' => 'MP2', 'farm' => 'EXP'],
+            ['id' => 23, 'name' => 'PASILLO', 'farm' => 'GEN'],
+            ['id' => 24, 'name' => 'PUB1', 'farm' => 'EST'],
+            ['id' => 25, 'name' => 'PUB2', 'farm' => 'EXP'],
+            ['id' => 26, 'name' => 'PUB2-D', 'farm' => 'EXP'],
+            ['id' => 27, 'name' => 'PUB3', 'farm' => 'EXP'],
+            ['id' => 28, 'name' => 'RECRIA', 'farm' => 'EXP'],
+            ['id' => 29, 'name' => 'TUNEL', 'farm' => 'GEN'],
+            ['id' => 30, 'name' => 'MATER', 'farm' => 'GEN'],
+            ['id' => 31, 'name' => 'REPRO', 'farm' => 'GEN'],
+            ['id' => 32, 'name' => 'REEM', 'farm' => 'GEN'],
         ];
 
-        foreach ($barns as $id => $name) {
-            DB::table('barns')->insert([
-                'id' => $id,
-                'name' => $name,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        foreach ($barns as $b) {
+            DB::table('barns')->updateOrInsert(
+                ['id' => $b['id']],
+                [
+                    'name' => $b['name'],
+                    'farm' => $b['farm'],
+                    'updated_at' => now(),
+                ]
+            );
         }
 
         $sections = [

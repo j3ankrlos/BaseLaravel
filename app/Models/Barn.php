@@ -9,7 +9,7 @@ class Barn extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'farm'];
 
     public function sections()
     {

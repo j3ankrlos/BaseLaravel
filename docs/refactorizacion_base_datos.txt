@@ -1,0 +1,92 @@
+=========================================================
+PROPUESTA DE REFACTORIZACIÓN Y NORMALIZACIÓN DE BASE DE DATOS
+PROYECTO: GRANJA PORCINA
+=========================================================
+
+1. ANÁLISIS DE LA SITUACIÓN ACTUAL Y PROBLEMAS DETECTADOS
+---------------------------------------------------------
+Al revisar las estructuras de tablas creadas a través de las migraciones, se observan aspectos susceptibles de mejora en términos de estandarización, escalabilidad y normalización (1NF, 2NF, 3NF):
+
+- Fragmentación de Eventos: Existen tablas separadas para `movements`, `transfer_requests`, `births`, `birth_details`, y sistemas de muertes separadas de los eventos regulares, generando un gran volumen de código y dificultad para trazar el historial completo de un animal o lote en una sola consulta.
+- Jerarquía de Ubicaciones Rígida: `barns` (galpones), `barn_sections` (secciones) y `pens` (corrales) son tablas separadas. Esto es rígido frente a futuros diseños de la granja y obliga a hacer múltiples JOINs.
+- Gestión de RRHH Compleja: Hay información dividida en `employees`, `veterinarians`, `assigned_posts`, `shifts`. Falta unificación que respete la herencia y polimorfismo, evitando tablas redundantes (un Veterinario también es un Empleado).
+
+
+2. PROPUESTA DE REFACTORIZACIÓN (ESTRUCTURA OPTIMIZADA)
+---------------------------------------------------------
+A continuación se presenta el esquema refactorizado, normalizado en 3NF y usando estándares modernos de bases de datos.
+
+### A. Ubicaciones (Normalización Jerárquica - Arbol Recursivo)
+Mejora: En lugar de tener `barns`, `barn_sections`, y `pens` separados, podemos consolidar la estructura con el Patrón de Lista de Adyacencia (Adjacency List) o Closure Table.
+* Tabla: `locations`
+- `id` (PK, UUID)
+- `name` (string)
+- `type` (enum: 'farm', 'barn', 'section', 'pen')
+- `parent_id` (FK -> locations.id, nullable)
+- `capacity` (int, capacidad de animales si aplica)
+- `status` (boolean)
+
+### B. Gestión de Personas y RRHH (Polimorfismo / Single Table Inheritance o Delegación)
+Mejora: Un veterinario es un empleado. Consolidaremos el personal en la tabla `employees` y usaremos una tabla pivot o especialización para detalles médicos y certificaciones.
+* Tabla: `employees`
+- `id` (PK)
+- `user_id` (FK -> users.id, nullable)
+- `code` (string, unique)
+- `type` (enum: 'general', 'veterinarian', 'manager')
+- `contract_type_id`, `shift_id`, `payroll_type_id` (FKs)
+
+* Tabla: `veterinarian_profiles` (Normalización 1:1 solo si type = 'veterinarian')
+- `employee_id` (PK, FK -> employees.id)
+- `license_number` (string)
+- `specialty` (string)
+
+### C. Animales e Inventario (Centralización de Activos)
+Mejora: Simplificar el rastreo (ID visual vs ID electrónico vs Lote).
+* Tabla: `animals` (Representa individuos o Lotes, usando patrón Composite si aplica)
+- `id` (PK)
+- `type` (enum: 'individual', 'lot')
+- `identifier_visual` (string, unique, index) - Arete
+- `identifier_electronic` (string, unique, index) - Chip
+- `genetic_id` (FK -> genetics.id)
+- `stage_id` (FK -> stages.id)
+- `location_id` (FK -> locations.id) -- Ubicación Actual (Corral/Galpón)
+- `status_id` (FK -> animal_statuses.id)
+- `birth_date` (date)
+- `parent_male_id` (FK -> animals.id, nullable)
+- `parent_female_id` (FK -> animals.id, nullable)
+
+### D. Eventos del Animal (Event Sourcing / Tabla Única de Registros)
+Mejora Radical: Eliminar/Unificar las tablas `movements`, `birth_details`, `transfers`. Utilizar el patrón de Eventos. De esta manera, todo el "Resumen de Vida" o "Historial" se consulta desde una sola tabla, reduciendo la fragmentación de la información (3NF optimizada).
+* Tabla: `animal_events`
+- `id` (PK)
+- `animal_id` (FK -> animals.id)
+- `event_type` (enum o FK -> event_types.id: 'birth', 'weaning', 'movement', 'treatment', 'death', 'sale')
+- `from_location_id` (FK -> locations.id, nullable)
+- `to_location_id` (FK -> locations.id, nullable)
+- `employee_id` (FK -> employees.id) -- Responsable del evento
+- `event_date` (timestamp)
+- `payload` (JSON) -> Permite escalabilidad (ej. en nacimientos guardar {alive: 10, dead: 2}, en muerte guardar {cause_id: 3, death_system_id: 1})
+
+### E. Estandarización de Parámetros Maestros (Tablas de Referencia)
+Mejora: Unir los catálogos en desuso o muy pequeños (DeathTypes, DeathCauses, AnimalStatuses) en estructuras estandarizadas.
+* Tabla: `catalogs` (O mantener `death_causes`, pero con estructura uniforme)
+- `id` (PK)
+- `type` (enum: 'death_cause', 'movement_reason', 'animal_status')
+- `code` (string, unique en combinación con type)
+- `name` (string)
+- `is_active` (boolean)
+
+
+3. BENEFICIOS Y MEJORAS DE ESTA REFACTORIZACIÓN
+---------------------------------------------------------
+1. Eliminación de Anomalías (1NF a 3NF):
+   Se reducen nulos sistemáticos. Por ejemplo, al no tener una tabla inmensa de `movements` con campos vacíos de muertes y reproducción (como sugería una migración actual), usamos una tabla polimórfica u orientada a eventos (`animal_events` con JSON `payload`).
+2. Flexibilidad (Ubicaciones):
+   Si mañana se necesitan añadir "Pabellones" sobre los galpones, al usar una tabla jerárquica de `locations` (Parent-Child) no se requiere modificar toda la BD, simplemente insertar un nuevo `type`.
+3. Trazabilidad Intacta y Rápida:
+   Consultar "Dónde ha estado un animal toda su vida" se convierte en un simple:
+   SELECT * FROM animal_events WHERE animal_id = X AND event_type IN ('movement', 'birth') ORDER BY event_date ASC;
+4. Integridad Referencial:
+   Todos los FK en SQLite o MySQL tendrán consistencia cruzada mediante ON DELETE RESTRICT (para evitar borrar un corral si hay animales vivos) o ON DELETE CASCADE en el historial de eventos.
+5. Menor Deuda Técnica:
+   Disminuye la cantidad de Modelos Eloquent de 30 a aproximadamente 15 potentes modelos orientados al dominio, facilitando el trabajo con Livewire y la carga de relaciones (Eager Loading más eficiente con menos `with(...)`).

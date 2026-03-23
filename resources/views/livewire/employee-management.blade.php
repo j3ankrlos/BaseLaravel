@@ -45,7 +45,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($employees as $emp)
+                    @forelse ($employees as $emp)
                         <tr>
                             <td><span class="badge bg-light text-dark border">{{ $emp->file_number ?? 'N/A' }}</span></td>
                             <td>
@@ -160,7 +160,7 @@
                                         <label class="form-label fw-semibold">Estado</label>
                                         <select wire:model.live="state_id" class="form-select @error('state_id') is-invalid @enderror">
                                             <option value="">Seleccione Estado</option>
-                                            @foreach($states as $st)
+                                            @foreach ($states as $st)
                                                 <option value="{{ $st->id }}">{{ $st->name }}</option>
                                             @endforeach
                                         </select>
@@ -169,7 +169,7 @@
                                         <label class="form-label fw-semibold">Municipio</label>
                                         <select wire:model.live="municipality_id" class="form-select @error('municipality_id') is-invalid @enderror" {{ !$state_id ? 'disabled' : '' }}>
                                             <option value="">Seleccione Municipio</option>
-                                            @foreach($municipalities as $mun)
+                                            @foreach ($municipalities as $mun)
                                                 <option value="{{ $mun->id }}">{{ $mun->name }}</option>
                                             @endforeach
                                         </select>
@@ -178,7 +178,7 @@
                                         <label class="form-label fw-semibold">Parroquia</label>
                                         <select wire:model="parish_id" class="form-select @error('parish_id') is-invalid @enderror" {{ !$municipality_id ? 'disabled' : '' }}>
                                             <option value="">Seleccione Parroquia</option>
-                                            @foreach($parishes as $par)
+                                            @foreach ($parishes as $par)
                                                 <option value="{{ $par->id }}">{{ $par->name }}</option>
                                             @endforeach
                                         </select>
@@ -201,7 +201,7 @@
                                         <label class="form-label fw-semibold text-primary">Área de Centro de Costo</label>
                                         <select wire:model.live="area_id" class="form-select border-primary @error('area_id') is-invalid @enderror">
                                             <option value="">Seleccione Área CC</option>
-                                            @foreach($areas as $area)
+                                            @foreach ($areas as $area)
                                                 <option value="{{ $area->id }}">{{ $area->name }}</option>
                                             @endforeach
                                         </select>
@@ -213,7 +213,7 @@
                                         <label class="form-label fw-semibold text-secondary">Área Asignada (Puesto)</label>
                                         <select wire:model="assigned_post_id" class="form-select border-secondary @error('assigned_post_id') is-invalid @enderror">
                                             <option value="">Seleccione Puesto</option>
-                                            @foreach($assignedPosts as $post)
+                                            @foreach ($assignedPosts as $post)
                                                 <option value="{{ $post->id }}">{{ $post->name }}</option>
                                             @endforeach
                                         </select>
@@ -233,7 +233,7 @@
                                         <label class="form-label fw-semibold">Cargo</label>
                                         <select wire:model.live="position_id" class="form-select @error('position_id') is-invalid @enderror">
                                             <option value="">Seleccione Cargo</option>
-                                            @foreach($positions as $pos)
+                                            @foreach ($positions as $pos)
                                                 <option value="{{ $pos->id }}">{{ $pos->name }}</option>
                                             @endforeach
                                         </select>
@@ -250,7 +250,7 @@
                                         <label class="form-label fw-semibold">Unidad (Sitio)</label>
                                         <select wire:model="unit_id" class="form-select @error('unit_id') is-invalid @enderror">
                                             <option value="">Seleccione Unidad</option>
-                                            @foreach($units as $unit)
+                                            @foreach ($units as $unit)
                                                 <option value="{{ $unit->id }}">{{ $unit->name }}</option>
                                             @endforeach
                                         </select>
@@ -270,7 +270,7 @@
                                         <label class="form-label fw-semibold text-danger">Turno Asignado</label>
                                         <select wire:model="shift_id" class="form-select border-danger @error('shift_id') is-invalid @enderror">
                                             <option value="">Seleccione Turno</option>
-                                            @foreach($shifts as $shift)
+                                            @foreach ($shifts as $shift)
                                                 <option value="{{ $shift->id }}">{{ $shift->code }} - {{ $shift->name }}</option>
                                             @endforeach
                                         </select>

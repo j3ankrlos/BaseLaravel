@@ -1,15 +1,45 @@
 {
   "version": 1,
   "skills": {
+    "database-architect": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "ca086b311b4c32c94c7a51aa44aa2728260a9e19d7b9bae1c0d2be56c47177b9"
+    },
+    "database-query-optimization": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "computedHash": "0a672545cd04309ce36835629f002545dfbca53e3ee041081ccc7a21f67a2000"
+    },
+    "database-schema-design": {
+      "source": "supercent-io/skills-template",
+      "sourceType": "github",
+      "computedHash": "4c33e1db0dbbe6f7c4c99a8a4d38b695d8bc417bcad3f18a34543c8d9bceb79d"
+    },
+    "laravel-architecture": {
+      "source": "leeovery/claude-laravel",
+      "sourceType": "github",
+      "computedHash": "cc809539967a72d610429f2a987950d6cb88b64b1a8f2a5c71cc1199651ec2e6"
+    },
     "laravel-permission-development": {
       "source": "spatie/laravel-permission",
       "sourceType": "github",
       "computedHash": "d9c7992cd16e18d8cddc60c71d7fa9294421d3ef0a58eb8d9218fceb39c8e28b"
     },
-    "modern-frontend-design": {
-      "source": "deveshpunjabi/modern-frontend-skill",
+    "laravel-specialist": {
+      "source": "jeffallan/claude-skills",
       "sourceType": "github",
-      "computedHash": "1c608565f5df3b15379687f1ac0475495170e0a1ad99907152ef219b767ad477"
+      "computedHash": "3fb2841e7b0e05d64484970fdbb03063327d904c270b2e46b9217b18863132ca"
+    },
+    "laravel:blade-components-and-layouts": {
+      "source": "jpcaparas/superpowers-laravel",
+      "sourceType": "github",
+      "computedHash": "6a2babba32107909daf4ba95ecf0141ad3696a72c73d0bc3948627cfb218d0ff"
+    },
+    "livewire-development": {
+      "source": "spatie/freek.dev",
+      "sourceType": "github",
+      "computedHash": "2797330b4840a67852cbf5459bb3bcb188a5c4ffa695d09d327c5b255d3a4b1b"
     }
   }
 }
