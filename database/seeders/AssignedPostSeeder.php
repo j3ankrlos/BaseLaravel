@@ -14,18 +14,19 @@ class AssignedPostSeeder extends Seeder
     {
         $posts = [
             'BIOSEGURIDAD',
-            'COORDINACION',
             'MATERNIDAD',
             'MATERNIDAD EST',
             'MATERNIDAD EXP',
-            'MATERNIDAD NOCHERO',
+            'NOCHERO GRUPO A',
+            'NOCHERO GRUPO B',
+            'NOCHERO GRUPO C',
             'OFICINA',
             'REEMPLAZO',
             'REEMPLAZO EST',
             'REEMPLAZO EXP',
-            'REPRODUCCION',
             'REPRODUCCION EST',
             'REPRODUCCION EXP',
+            'SITIO I',
             'STUD DE MACHOS',
         ];
 

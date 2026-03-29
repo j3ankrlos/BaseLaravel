@@ -148,7 +148,6 @@ class WarehouseA006Management extends Component
 
         foreach ($this->requestItems as $item) {
             $request->details()->create([
-                'IdCodigo' => $item['codigo'],
                 'Codigo' => $item['codigo'],
                 'Producto' => $item['producto'],
                 'UMB' => $item['umb'],

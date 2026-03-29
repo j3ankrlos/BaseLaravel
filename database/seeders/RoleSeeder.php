@@ -87,7 +87,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Administrador Sistema',
                 'username' => 'admin', // Clave para el login
-                'password' => Hash::make('password123!'),
+                'password' => Hash::make('admin123'),
                 'email_verified_at' => now(),
                 'status_id' => 1, // Usuario activo
             ]

@@ -18,10 +18,27 @@
             <label class="form-label fw-semibold">Contraseña</label>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="ph ph-lock"></i></span>
-                <input wire:model="password" type="password" class="form-control border-start-0 bg-light @error('password') is-invalid @enderror" placeholder="••••••••">
+                <input wire:model="password" id="password-input" type="password" class="form-control border-start-0 border-end-0 bg-light @error('password') is-invalid @enderror" placeholder="••••••••">
+                <button type="button" id="toggle-password" class="input-group-text bg-light border-start-0" onclick="togglePassword()" title="Mostrar / Ocultar contraseña" style="cursor:pointer;">
+                    <i id="eye-icon" class="ph ph-eye"></i>
+                </button>
                 @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>
+
+        <script>
+            function togglePassword() {
+                const input = document.getElementById('password-input');
+                const icon  = document.getElementById('eye-icon');
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.replace('ph-eye', 'ph-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.replace('ph-eye-slash', 'ph-eye');
+                }
+            }
+        </script>
 
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div class="form-check">

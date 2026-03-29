@@ -115,22 +115,41 @@
                                 </select>
                                 @error('sexo') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-3 position-relative" x-data="{ showResults: false }">
                                 <label class="form-label fw-semibold small">Nave</label>
-                                <select wire:model.live="nave" class="form-select bg-light">
-                                    <option value="">Seleccione...</option>
-                                    @foreach ($this->barns as $bn)
-                                        <option value="{{ $bn->name }}" wire:key="bn-{{ $bn->id }}">{{ $bn->name }}</option>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="ph ph-magnifying-glass"></i></span>
+                                    <input 
+                                        wire:model.live.debounce.300ms="naveSearch" 
+                                        type="text" 
+                                        class="form-control bg-light border-start-0" 
+                                        placeholder="Buscar nave..."
+                                        @focus="showResults = true"
+                                        @click.away="showResults = false"
+                                        @keydown.escape="showResults = false"
+                                        @keydown.enter="showResults = false"
+                                    >
+                                </div>
+                                <input type="hidden" wire:model="nave">
+                                
+                                <div x-show="showResults && $wire.naveResults.length > 0" class="position-absolute w-100 mt-1 shadow-lg z-3 border border-light rounded overflow-hidden bg-white" style="left: 0; right: 0;">
+                                    @foreach ($naveResults as $bn)
+                                        <button type="button" 
+                                                wire:click="selectNave('{{ $bn->name }}')" 
+                                                @click="showResults = false"
+                                                class="btn btn-link text-start text-dark w-100 p-2 border-bottom border-light text-decoration-none dropdown-item-hover">
+                                            <div class="fw-bold text-dark small">{{ $bn->name }}</div>
+                                        </button>
                                     @endforeach
-                                </select>
+                                </div>
                                 @error('nave') <span class="text-danger small">{{ $message }}</span> @enderror
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold small">Sección</label>
-                                <select wire:model="seccion" class="form-select bg-light" {{ empty($nave) ? 'disabled' : '' }}>
+                                <select wire:model="seccion" wire:key="select-seccion-for-{{ $nave }}" class="form-select bg-light" {{ empty($nave) ? 'disabled' : '' }}>
                                     <option value="">Seleccione...</option>
                                     @foreach ($this->barnSections as $sec)
-                                        <option value="{{ $sec->name }}" wire:key="sec-{{ $sec->id }}">{{ $sec->name }}</option>
+                                        <option value="{{ $sec->name }}" wire:key="sec-item-{{ $sec->id }}-{{ $nave }}">{{ $sec->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('seccion') <span class="text-danger small">{{ $message }}</span> @enderror

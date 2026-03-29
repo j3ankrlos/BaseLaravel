@@ -17,6 +17,24 @@ class EmployeeIncident extends Model
         'created_by'
     ];
 
+    protected $appends = ['dynamic_status'];
+
+    public function getDynamicStatusAttribute()
+    {
+        // Si el usuario ya lo marcó como cumplido en base de datos, siempre es Cumplido.
+        if ($this->status === 'Cumplido') {
+            return 'Cumplido';
+        }
+
+        // Si hoy es mayor que la fecha de fin (ya caducó) y no se ha marcado como cumplido, es Pendiente.
+        if (\Carbon\Carbon::today()->gt(\Carbon\Carbon::parse($this->end_date))) {
+            return 'Pendiente';
+        }
+
+        // Si la fecha la cubre o es futura (incluyendo inicio), está En Curso.
+        return 'En Curso';
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class);

@@ -8,7 +8,6 @@ class TransferRequestDetail extends Model
 {
     protected $fillable = [
         'transfer_request_id',
-        'IdCodigo',
         'Codigo',
         'Producto',
         'UMB',

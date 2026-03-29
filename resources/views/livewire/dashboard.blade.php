@@ -52,13 +52,54 @@
         </div>
 
         {{-- Personal Activo --}}
-        <div class="col-6 col-xl-3">
+        <div class="col-6 col-md-4 col-xl-3">
             <a href="/employees" wire:navigate class="text-decoration-none">
                 <div class="stat-card" style="background: linear-gradient(135deg,#0891b2,#0c4a6e);">
                     <div class="stat-card-label">Personal Activo</div>
                     <div class="stat-card-value">{{ $statsEmployees }}</div>
                     <div class="stat-card-sub">Empleados Registrados</div>
                     <i class="ph ph-users-three stat-card-icon"></i>
+                </div>
+            </a>
+        </div>
+
+        {{-- En Reposo --}}
+        <div class="col-6 col-md-4 col-xl-3">
+            <a href="/employees" wire:navigate class="text-decoration-none">
+                <div class="stat-card" style="background: linear-gradient(135deg,#8b5cf6,#5b21b6);">
+                    <div class="stat-card-label">En Reposo</div>
+                    <div class="stat-card-value">{{ $statsReposos }}</div>
+                    <div class="stat-card-sub">Total Granja</div>
+                    <i class="ph ph-first-aid stat-card-icon"></i>
+                </div>
+            </a>
+        </div>
+
+        {{-- De Vacaciones --}}
+        <div class="col-6 col-md-4 col-xl-3">
+            <a href="/employees" wire:navigate class="text-decoration-none">
+                <div class="stat-card" style="background: linear-gradient(135deg,#ec4899,#be185d);">
+                    <div class="stat-card-label">Vacaciones</div>
+                    <div class="stat-card-value">{{ $statsVacaciones }}</div>
+                    <div class="stat-card-sub">Total Granja</div>
+                    <i class="ph ph-airplane-tilt stat-card-icon"></i>
+                </div>
+            </a>
+        </div>
+
+        {{-- Regresos Pendientes de Confirmar --}}
+        <div class="col-6 col-md-4 col-xl-3">
+            <a href="/incidents" wire:navigate class="text-decoration-none">
+                <div class="stat-card position-relative" style="background: linear-gradient(135deg,#f97316,#9a3412);">
+                    @if($statsIncidentesPendientes > 0)
+                        <span class="position-absolute top-0 end-0 m-2 badge bg-white text-danger fw-bold rounded-pill">
+                            ¡Acción requerida!
+                        </span>
+                    @endif
+                    <div class="stat-card-label">Regresos Pendientes</div>
+                    <div class="stat-card-value">{{ $statsIncidentesPendientes }}</div>
+                    <div class="stat-card-sub">Sin confirmar regreso</div>
+                    <i class="ph ph-clock-countdown stat-card-icon"></i>
                 </div>
             </a>
         </div>

@@ -282,29 +282,6 @@
                         <div class="nav-separator-line"></div>
                     </li>
 
-                    {{-- Movimientos Hub (Central) --}}
-                    <li class="nav-item">
-                        <a href="{{ route('inventory.movements') }}" class="nav-link {{ request()->routeIs('inventory.movements') ? 'active' : '' }} text-decoration-none py-3" wire:navigate style="border-left: 3px solid #0d6efd; background: rgba(13,110,253,0.05);">
-                            <i class="ph ph-arrows-merge fs-5 text-primary"></i>
-                            <span class="nav-text fw-bold">MOVIMIENTOS HUB</span>
-                            <span class="badge bg-primary ms-auto small">Central</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="{{ route('inventory.list') }}" class="nav-link {{ request()->routeIs('inventory.list') ? 'active' : '' }} text-decoration-none" wire:navigate>
-                            <i class="ph ph-database"></i>
-                            <span class="nav-text text-uppercase fw-bold">Vista General Inv.</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a href="{{ route('inventory.traceability') }}" class="nav-link {{ request()->routeIs('inventory.traceability') ? 'active' : '' }} text-decoration-none" wire:navigate>
-                            <i class="ph ph-fingerprint"></i>
-                            <span class="nav-text text-uppercase fw-bold">Trazabilidad Total</span>
-                        </a>
-                    </li>
-
                     {{-- SECCIÓN GENÉTICA Y REPRODUCCIÓN --}}
                     <li class="nav-item">
                         <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center {{ request()->is('genetic-selection*') ? 'active' : '' }}" 
@@ -337,6 +314,29 @@
                                 </li>
                             </ul>
                         </div>
+                    </li>
+
+                    {{-- Movimientos Hub (Central) --}}
+                    <li class="nav-item">
+                        <a href="{{ route('inventory.movements') }}" class="nav-link {{ request()->routeIs('inventory.movements') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-arrows-merge"></i>
+                            <span class="nav-text">Movimientos</span>
+                            <span class="badge bg-primary ms-auto small">Central</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('inventory.list') }}" class="nav-link {{ request()->routeIs('inventory.list') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-database"></i>
+                            <span class="nav-text">Inventario General</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a href="{{ route('inventory.traceability') }}" class="nav-link {{ request()->routeIs('inventory.traceability') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-fingerprint"></i>
+                            <span class="nav-text">Trazabilidad</span>
+                        </a>
                     </li>
                 </ul>
             </div>

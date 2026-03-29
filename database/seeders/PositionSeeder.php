@@ -26,6 +26,9 @@ class PositionSeeder extends Seeder
             'SUPERVISOR DE PRODUCCION',
             'SUPERVISOR DE PRODUCCION II',
             'ASISTENTE ADMINISTRATIVO',
+            'PASANTE INCES',
+            'PASANTE UNIVERSITARIO',
+
         ];
 
         foreach ($positions as $cargo) {

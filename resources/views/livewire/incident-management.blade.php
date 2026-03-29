@@ -49,17 +49,26 @@
                 <tbody class="border-top-0">
                     @forelse ($incidents as $incident)
                         @php
-                            $color = 'info';
+                            $typeColor = 'info';
                             $code = $incident->attendanceStatus->code;
-                            if (in_array($code, ['FINR', 'FJ', 'FJNR'])) $color = 'danger';
-                            elseif (in_array($code, ['V', 'LP'])) $color = 'primary';
-                            elseif (in_array($code, ['R', 'X/R'])) $color = 'warning';
-                            elseif ($code === 'L') $color = 'secondary';
+                            if (in_array($code, ['FINR', 'FJ', 'FJNR'])) $typeColor = 'danger';
+                            elseif (in_array($code, ['V', 'LP'])) $typeColor = 'primary';
+                            elseif (in_array($code, ['R', 'X/R'])) $typeColor = 'warning';
+                            elseif ($code === 'L') $typeColor = 'secondary';
+
+                            // Badge dinámico del estatus de la incidencia
+                            $dynStatus = $incident->dynamic_status;
+                            $statusBadge = match($dynStatus) {
+                                'En Curso'  => ['bg' => 'primary',  'icon' => 'ph-spinner',       'label' => 'En Curso'],
+                                'Pendiente' => ['bg' => 'warning',  'icon' => 'ph-clock-countdown','label' => 'Pendiente'],
+                                'Cumplido'  => ['bg' => 'success',  'icon' => 'ph-check-circle',  'label' => 'Cumplido'],
+                                default     => ['bg' => 'secondary','icon' => 'ph-question',       'label' => $dynStatus],
+                            };
                         @endphp
                         <tr>
                             <td class="ps-4 py-3">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3 bg-{{ $color }}-subtle text-{{ $color }} fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <div class="avatar-circle me-3 bg-{{ $typeColor }}-subtle text-{{ $typeColor }} fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                         {{ $code }}
                                     </div>
                                     <div>
@@ -87,10 +96,23 @@
                                 <span class="badge bg-light text-dark border px-3 rounded-pill">{{ $incident->total_days }} días</span>
                             </td>
                             <td>
-                                <span class="badge bg-success-subtle text-success px-3 rounded-pill">Procesado</span>
+                                <span class="badge bg-{{ $statusBadge['bg'] }}-subtle text-{{ $statusBadge['bg'] }} border border-{{ $statusBadge['bg'] }}-subtle px-3 rounded-pill d-inline-flex align-items-center gap-1">
+                                    <i class="ph {{ $statusBadge['icon'] }}"></i>
+                                    {{ $statusBadge['label'] }}
+                                </span>
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-light btn-sm rounded-circle" wire:click="delete({{ $incident->id }})" onConfirm="¿Eliminar esta incidencia? Se mantendrá el historial de asistencias generado.">
+                                <!-- Botón Editar (solo estatus y observación) -->
+                                <button class="btn btn-light btn-sm rounded-circle me-1"
+                                        wire:click="edit({{ $incident->id }})"
+                                        data-bs-toggle="modal" data-bs-target="#incidentModal"
+                                        title="Editar estatus de la incidencia">
+                                    <i class="ph ph-pencil-simple text-warning"></i>
+                                </button>
+                                <!-- Botón Eliminar -->
+                                <button class="btn btn-light btn-sm rounded-circle"
+                                        wire:click="delete({{ $incident->id }})"
+                                        title="Eliminar incidencia">
                                     <i class="ph ph-trash text-danger"></i>
                                 </button>
                             </td>
@@ -111,102 +133,180 @@
         </div>
     </div>
 
-    <!-- Modal para Registrar Incidencia -->
+    <!-- Modal Unificado: Registrar O Editar Incidencia -->
     <div wire:ignore.self class="modal fade" id="incidentModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow rounded-4">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold"><i class="ph ph-plus-circle me-2 text-primary"></i> Registrar Nueva Incidencia</h5>
+                    <h5 class="modal-title fw-bold">
+                        @if($incident_id)
+                            <i class="ph ph-pencil-simple me-2 text-warning"></i> Confirmar / Actualizar Incidencia
+                        @else
+                            <i class="ph ph-plus-circle me-2 text-primary"></i> Registrar Nueva Incidencia
+                        @endif
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" wire:click="resetFields"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form wire:submit.prevent="save">
                         <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Buscar Trabajador (Cédula o Nombre)</label>
-                                @if(!$selectedEmployee)
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-white"><i class="ph ph-magnifying-glass"></i></span>
-                                        <input type="text" wire:model.live.debounce.300ms="employeeSearch" 
-                                               class="form-control border-start-0 @error('employee_id') is-invalid @enderror" 
-                                               placeholder="Escriba al menos 3 caracteres para buscar...">
-                                        @error('employee_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                    </div>
 
-                                    @if(count($employees) > 0)
-                                        <div class="list-group mt-2 shadow-sm">
-                                            @foreach ($employees as $emp)
-                                                <button type="button" wire:click="selectEmployee({{ $emp->id }})" 
-                                                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="fw-bold">{{ $emp->last_names }} {{ $emp->first_names }}</span><br>
-                                                        <small class="text-muted">Cédula: {{ $emp->national_id }}</small>
-                                                    </div>
-                                                    <i class="ph ph-plus-circle text-primary fs-5"></i>
-                                                </button>
-                                            @endforeach
+                            @if($incident_id)
+                                {{-- ============ MODO EDICIÓN: Solo Status + Observación ============ --}}
+                                {{-- Resumen de Solo Lectura --}}
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center p-3 bg-light rounded-3 border">
+                                        <div class="avatar-circle me-3 bg-warning-subtle text-warning fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                            <i class="ph ph-user"></i>
                                         </div>
-                                    @elseif(strlen($employeeSearch) > 2)
-                                        <div class="alert alert-light border mt-2 py-2 small">
-                                            <i class="ph ph-info me-1"></i> No se encontraron coincidencias.
+                                        <div>
+                                            <div class="fw-bold text-dark">{{ $selectedEmployee?->last_names }} {{ $selectedEmployee?->first_names }}</div>
+                                            <small class="text-muted">
+                                                Cédula: {{ $selectedEmployee?->national_id }}
+                                                &nbsp;•&nbsp;
+                                                Período: {{ $start_date ? \Carbon\Carbon::parse($start_date)->format('d/m/Y') : '–' }}
+                                                al {{ $end_date ? \Carbon\Carbon::parse($end_date)->format('d/m/Y') : '–' }}
+                                                ({{ $total_days }} días)
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Estado de la Incidencia</label>
+                                    <select wire:model.live="incident_status" class="form-select @error('incident_status') is-invalid @enderror">
+                                        <option value="En Curso">🔵 En Curso — La incidencia está vigente</option>
+                                        <option value="Pendiente">🟠 Pendiente — Debió regresar, sin confirmar</option>
+                                        <option value="Cumplido">🟢 Cumplido — El trabajador regresó</option>
+                                    </select>
+                                    @error('incident_status') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    <small class="text-muted mt-1 d-block">
+                                        <i class="ph ph-info me-1"></i>
+                                        Al marcar como <strong>Cumplido</strong>, el estatus del empleado se limpiará automáticamente.
+                                    </small>
+                                </div>
+
+                                {{-- Campo de fecha real de regreso: solo si marca Cumplido --}}
+                                @if($incident_status === 'Cumplido')
+                                <div class="col-md-12">
+                                    <div class="alert alert-warning-subtle border border-warning-subtle rounded-3 p-3 mb-0">
+                                        <div class="fw-bold text-warning-emphasis mb-2">
+                                            <i class="ph ph-calendar-check me-1"></i>
+                                            ¿En qué fecha regresó el trabajador?
+                                        </div>
+                                        <input type="date" wire:model="return_date"
+                                               class="form-control @error('return_date') is-invalid @enderror"
+                                               max="{{ now()->format('Y-m-d') }}">
+                                        @error('return_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        <small class="text-muted mt-1 d-block">
+                                            Dejar en blanco si regresó exactamente el
+                                            <strong>{{ $end_date ? \Carbon\Carbon::parse($end_date)->format('d/m/Y') : '–' }}</strong>.
+                                            Si ingresó una fecha posterior, se abrirá un formulario para registrar los días de ausencia injustificada.
+                                        </small>
+                                    </div>
+                                </div>
+                                @endif
+
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Observación / Justificación</label>
+                                    <textarea wire:model="observation" class="form-control" rows="3" placeholder="Escriba aquí los detalles de la incidencia..."></textarea>
+                                </div>
+
+                            @else
+                                {{-- ============ MODO CREACIÓN: Todos los campos ============ --}}
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Buscar Trabajador (Cédula o Nombre)</label>
+                                    @if(!$selectedEmployee)
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-white"><i class="ph ph-magnifying-glass"></i></span>
+                                            <input type="text" wire:model.live.debounce.300ms="employeeSearch"
+                                                   class="form-control border-start-0 @error('employee_id') is-invalid @enderror"
+                                                   placeholder="Escriba al menos 3 caracteres para buscar...">
+                                            @error('employee_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+
+                                        @if(count($employees) > 0)
+                                            <div class="list-group mt-2 shadow-sm">
+                                                @foreach ($employees as $emp)
+                                                    <button type="button" wire:click="selectEmployee({{ $emp->id }})"
+                                                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <span class="fw-bold">{{ $emp->last_names }} {{ $emp->first_names }}</span><br>
+                                                            <small class="text-muted">Cédula: {{ $emp->national_id }}</small>
+                                                        </div>
+                                                        <i class="ph ph-plus-circle text-primary fs-5"></i>
+                                                    </button>
+                                                @endforeach
+                                            </div>
+                                        @elseif(strlen($employeeSearch) > 2)
+                                            <div class="alert alert-light border mt-2 py-2 small">
+                                                <i class="ph ph-info me-1"></i> No se encontraron coincidencias.
+                                            </div>
+                                        @endif
+                                    @else
+                                        <div class="d-flex align-items-center p-3 bg-primary-subtle rounded-3 border border-primary-subtle">
+                                            <div class="avatar-circle me-3 bg-primary text-white fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                                {{ substr($selectedEmployee->first_names, 0, 1) }}{{ substr($selectedEmployee->last_names, 0, 1) }}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-bold text-dark">{{ $selectedEmployee->last_names }} {{ $selectedEmployee->first_names }}</div>
+                                                <small class="text-muted">Cédula: {{ $selectedEmployee->national_id }} • {{ $selectedEmployee->area->name ?? 'S/A' }}</small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle" wire:click.prevent="deselectEmployee">
+                                                <i class="ph ph-x-circle fs-4"></i>
+                                            </button>
                                         </div>
                                     @endif
-                                @else
-                                    <div class="d-flex align-items-center p-3 bg-primary-subtle rounded-3 border border-primary-subtle">
-                                        <div class="avatar-circle me-3 bg-primary text-white fw-bold rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                                            {{ substr($selectedEmployee->first_names, 0, 1) }}{{ substr($selectedEmployee->last_names, 0, 1) }}
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="fw-bold text-dark">{{ $selectedEmployee->last_names }} {{ $selectedEmployee->first_names }}</div>
-                                            <small class="text-muted">Cédula: {{ $selectedEmployee->national_id }} • {{ $selectedEmployee->area->name ?? 'S/A' }}</small>
-                                        </div>
-                                        <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle" wire:click.prevent="deselectEmployee">
-                                            <i class="ph ph-x-circle fs-4"></i>
-                                        </button>
-                                    </div>
-                                @endif
-                                <input type="hidden" wire:model="employee_id">
-                            </div>
+                                    <input type="hidden" wire:model="employee_id">
+                                </div>
 
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Tipo de Incidencia</label>
-                                <select wire:model="attendance_status_id" class="form-select @error('attendance_status_id') is-invalid @enderror">
-                                    <option value="">Seleccione el tipo...</option>
-                                    @foreach ($statuses as $st)
-                                        <option value="{{ $st->id }}">{{ $st->code }} - {{ $st->description }}</option>
-                                    @endforeach
-                                </select>
-                                @error('attendance_status_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Tipo de Incidencia</label>
+                                    <select wire:model="attendance_status_id" class="form-select @error('attendance_status_id') is-invalid @enderror">
+                                        <option value="">Seleccione el tipo...</option>
+                                        @foreach ($statuses as $st)
+                                            <option value="{{ $st->id }}">{{ $st->code }} - {{ $st->description }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('attendance_status_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Fecha de Inicio</label>
-                                <input type="date" wire:model.live="start_date" class="form-control @error('start_date') is-invalid @enderror">
-                                @error('start_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Fecha de Inicio</label>
+                                    <input type="date" wire:model.live="start_date" class="form-control @error('start_date') is-invalid @enderror">
+                                    @error('start_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Fecha de Fin</label>
-                                <input type="date" wire:model.live="end_date" class="form-control @error('end_date') is-invalid @enderror">
-                                @error('end_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Fecha de Fin</label>
+                                    <input type="date" wire:model.live="end_date" class="form-control @error('end_date') is-invalid @enderror">
+                                    @error('end_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Total Días</label>
-                                <input type="text" class="form-control bg-light fw-bold text-primary" value="{{ $total_days }} días" readonly>
-                            </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Total Días</label>
+                                    <input type="text" class="form-control bg-light fw-bold text-primary" value="{{ $total_days }} días" readonly>
+                                </div>
 
-                            <div class="col-md-12">
-                                <label class="form-label fw-bold">Observación / Justificación</label>
-                                <textarea wire:model="observation" class="form-control" rows="3" placeholder="Escriba aquí los detalles de la incidencia..."></textarea>
-                                @error('observation') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Observación / Justificación</label>
+                                    <textarea wire:model="observation" class="form-control" rows="3" placeholder="Escriba aquí los detalles de la incidencia..."></textarea>
+                                    @error('observation') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            @endif
+
                         </div>
 
                         <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" wire:click="resetFields">Cancelar</button>
-                            <button type="submit" class="btn btn-primary px-4 shadow-sm" wire:loading.attr="disabled">
-                                <span wire:loading.remove>Guardar Incidencia</span>
+                            <button type="submit" class="btn btn-{{ $incident_id ? 'warning' : 'primary' }} px-4 shadow-sm" wire:loading.attr="disabled">
+                                <span wire:loading.remove>
+                                    @if($incident_id)
+                                        <i class="ph ph-check-circle me-1"></i> Confirmar Cambio
+                                    @else
+                                        Guardar Incidencia
+                                    @endif
+                                </span>
                                 <span wire:loading>Procesando...</span>
                             </button>
                         </div>

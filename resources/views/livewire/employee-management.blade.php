@@ -6,10 +6,10 @@
             </div>
             <div class="col-12 col-md-auto text-end">
                 <!-- Botón de Importar -->
-                <button onclick="document.getElementById('importFile').click()" class="btn btn-outline-success shadow-sm me-1" title="Cargar empleados desde CSV">
-                    <i class="ph ph-file-csv me-1"></i> <span class="d-none d-lg-inline">Importar</span>
+                <button onclick="document.getElementById('importFile').click()" class="btn btn-outline-success shadow-sm me-1" title="Cargar empleados desde Excel o CSV">
+                    <i class="ph ph-file-xls me-1"></i> <span class="d-none d-lg-inline">Importar</span>
                 </button>
-                <input type="file" id="importFile" wire:model.live="importFile" class="d-none" accept=".csv">
+                <input type="file" id="importFile" wire:model.live="importFile" class="d-none" accept=".csv,.xlsx,.xls">
                 
                 @error('importFile') 
                     <script>
@@ -55,29 +55,37 @@
                             <td>{{ $emp->national_id }}</td>
                             <td><span class="fw-medium text-dark">{{ $emp->position->name ?? 'N/A' }}</span></td>
                             <td>
-                                <div class="small fw-bold text-primary" title="Área de Centro de Costo">
-                                    <i class="ph ph-money me-1"></i>{{ $emp->area->name ?? 'Sin Área CC' }}
-                                </div>
-                                <div class="small fw-semibold text-secondary" title="Puesto Asignado">
+                                <div class="small fw-bold text-primary" title="Puesto Asignado">
                                     <i class="ph ph-map-pin me-1"></i>{{ $emp->assignedPost->name ?? 'Sin Puesto' }}
+                                </div>
+                                <div class="small fw-semibold text-secondary" title="Área de Centro de Costo">
+                                    <i class="ph ph-money me-1"></i>{{ $emp->area->name ?? 'Sin Área CC' }}
                                 </div>
                                 <div class="small text-muted" title="Unidad">
                                     <i class="ph ph-house me-1"></i>{{ $emp->unit->name ?? 'Sin Unidad' }}
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-{{ $emp->status == 'Activo' ? 'success' : 'danger' }}">
-                                    {{ $emp->status }}
-                                </span>
+                                <div class="d-flex flex-column gap-1">
+                                    <span class="badge bg-info text-dark border-0" style="background-color: #e0f2fe !important;">
+                                        <i class="ph ph-article me-1"></i>{{ $emp->estatus ?? 'Fijo' }}
+                                    </span>
+                                    <span class="badge bg-{{ $emp->estadonomina == 'Activo' ? 'success' : 'danger' }} shadow-sm">
+                                        <i class="ph ph-circle-wavy-{{ $emp->estadonomina == 'Activo' ? 'check' : 'warning' }} me-1"></i>
+                                        {{ $emp->estadonomina ?? 'Activo' }}
+                                    </span>
+                                </div>
                             </td>
                             <td class="text-center">
-                                <button wire:click="edit({{ $emp->id }})" class="btn btn-sm btn-outline-secondary" title="Editar" wire:loading.attr="disabled">
-                                    <i class="ph ph-pencil-simple" wire:loading.remove wire:target="edit({{ $emp->id }})"></i>
-                                    <span class="spinner-border spinner-border-sm" wire:loading wire:target="edit({{ $emp->id }})"></span>
-                                </button>
-                                <button wire:click="delete({{ $emp->id }})" class="btn btn-sm btn-outline-danger ms-1" title="Eliminar">
-                                    <i class="ph ph-trash"></i>
-                                </button>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <button wire:click="edit({{ $emp->id }})" class="btn btn-sm btn-outline-secondary" title="Editar" wire:loading.attr="disabled">
+                                        <i class="ph ph-pencil-simple" wire:loading.remove wire:target="edit({{ $emp->id }})"></i>
+                                        <span class="spinner-border spinner-border-sm" wire:loading wire:target="edit({{ $emp->id }})"></span>
+                                    </button>
+                                    <button wire:click="delete({{ $emp->id }})" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                        <i class="ph ph-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -160,7 +168,7 @@
                                         <label class="form-label fw-semibold">Estado</label>
                                         <select wire:model.live="state_id" class="form-select @error('state_id') is-invalid @enderror">
                                             <option value="">Seleccione Estado</option>
-                                            @foreach ($states as $st)
+                                            @foreach ($this->states as $st)
                                                 <option value="{{ $st->id }}">{{ $st->name }}</option>
                                             @endforeach
                                         </select>
@@ -169,7 +177,7 @@
                                         <label class="form-label fw-semibold">Municipio</label>
                                         <select wire:model.live="municipality_id" class="form-select @error('municipality_id') is-invalid @enderror" {{ !$state_id ? 'disabled' : '' }}>
                                             <option value="">Seleccione Municipio</option>
-                                            @foreach ($municipalities as $mun)
+                                            @foreach ($this->municipalities as $mun)
                                                 <option value="{{ $mun->id }}">{{ $mun->name }}</option>
                                             @endforeach
                                         </select>
@@ -178,7 +186,7 @@
                                         <label class="form-label fw-semibold">Parroquia</label>
                                         <select wire:model="parish_id" class="form-select @error('parish_id') is-invalid @enderror" {{ !$municipality_id ? 'disabled' : '' }}>
                                             <option value="">Seleccione Parroquia</option>
-                                            @foreach ($parishes as $par)
+                                            @foreach ($this->parishes as $par)
                                                 <option value="{{ $par->id }}">{{ $par->name }}</option>
                                             @endforeach
                                         </select>
@@ -201,7 +209,7 @@
                                         <label class="form-label fw-semibold text-primary">Área de Centro de Costo</label>
                                         <select wire:model.live="area_id" class="form-select border-primary @error('area_id') is-invalid @enderror">
                                             <option value="">Seleccione Área CC</option>
-                                            @foreach ($areas as $area)
+                                            @foreach ($this->areas as $area)
                                                 <option value="{{ $area->id }}">{{ $area->name }}</option>
                                             @endforeach
                                         </select>
@@ -213,7 +221,7 @@
                                         <label class="form-label fw-semibold text-secondary">Área Asignada (Puesto)</label>
                                         <select wire:model="assigned_post_id" class="form-select border-secondary @error('assigned_post_id') is-invalid @enderror">
                                             <option value="">Seleccione Puesto</option>
-                                            @foreach ($assignedPosts as $post)
+                                            @foreach ($this->assignedPosts as $post)
                                                 <option value="{{ $post->id }}">{{ $post->name }}</option>
                                             @endforeach
                                         </select>
@@ -233,7 +241,7 @@
                                         <label class="form-label fw-semibold">Cargo</label>
                                         <select wire:model.live="position_id" class="form-select @error('position_id') is-invalid @enderror">
                                             <option value="">Seleccione Cargo</option>
-                                            @foreach ($positions as $pos)
+                                            @foreach ($this->positions as $pos)
                                                 <option value="{{ $pos->id }}">{{ $pos->name }}</option>
                                             @endforeach
                                         </select>
@@ -250,7 +258,7 @@
                                         <label class="form-label fw-semibold">Unidad (Sitio)</label>
                                         <select wire:model="unit_id" class="form-select @error('unit_id') is-invalid @enderror">
                                             <option value="">Seleccione Unidad</option>
-                                            @foreach ($units as $unit)
+                                            @foreach ($this->units as $unit)
                                                 <option value="{{ $unit->id }}">{{ $unit->name }}</option>
                                             @endforeach
                                         </select>
@@ -270,20 +278,38 @@
                                         <label class="form-label fw-semibold text-danger">Turno Asignado</label>
                                         <select wire:model="shift_id" class="form-select border-danger @error('shift_id') is-invalid @enderror">
                                             <option value="">Seleccione Turno</option>
-                                            @foreach ($shifts as $shift)
+                                            @foreach ($this->shifts as $shift)
                                                 <option value="{{ $shift->id }}">{{ $shift->code }} - {{ $shift->name }}</option>
-                                            @endforeach
+                                             @endforeach
                                         </select>
                                         @error('shift_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-semibold">Estatus</label>
-                                        <select wire:model="status" class="form-select">
+                                        <label class="form-label fw-semibold text-success">Tipo de Nómina</label>
+                                        <select wire:model="payroll_type_id" class="form-select border-success @error('payroll_type_id') is-invalid @enderror">
+                                            <option value="">Seleccione Nómina</option>
+                                            @foreach ($this->payrollTypes as $type)
+                                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('payroll_type_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Estatus (Contrato)</label>
+                                        <select wire:model="estatus" class="form-select @error('estatus') is-invalid @enderror">
+                                            <option value="Fijo">Fijo</option>
+                                            <option value="Contratado">Contratado</option>
+                                        </select>
+                                        @error('estatus') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Estado Nómina</label>
+                                        <select wire:model="estadonomina" class="form-select @error('estadonomina') is-invalid @enderror">
                                             <option value="Activo">Activo</option>
-                                            <option value="Vacaciones">Vacaciones</option>
-                                            <option value="Reposo">Reposo</option>
                                             <option value="Inactivo">Inactivo</option>
                                         </select>
+                                        @error('estadonomina') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
 
                                     @if($showVetSection)

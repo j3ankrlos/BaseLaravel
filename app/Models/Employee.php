@@ -3,36 +3,63 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Employee extends Model
 {
     protected $fillable = [
-        'first_names',
-        'last_names',
-        'national_id',
-        'phone_fixed',
-        'phone_mobile',
-        'state_id',
-        'municipality_id',
-        'parish_id',
-        'city',
-        'address',
-        'entry_date',
-        'file_number',
-        'cost_center_code',
-        'area_id',
-        'assigned_post_id',
-        'unit_id',
-        'position_id',
-        'payroll_type_id',
-        'shift_id',
-        'status'
+        'first_names',       // Nombres
+        'last_names',        // Apellidos
+        'national_id',       // Cédula de Identidad
+        'phone_fixed',       // Teléfono Fijo
+        'phone_mobile',      // Teléfono Móvil
+        'state_id',          // ID del Estado
+        'municipality_id',   // ID del Municipio
+        'parish_id',         // ID de la Parroquia
+        'city',              // Ciudad
+        'address',           // Dirección de habitación
+        'entry_date',        // Fecha de ingreso
+        'file_number',       // Número de Ficha (Expediente)
+        'cost_center_code',  // Código del Centro de Costo
+        'area_id',           // ID del Área (ej. Sanidad Animal)
+        'assigned_post_id',  // ID del Puesto Asignado (ej. Maternidad)
+        'unit_id',           // ID de la Unidad de Producción
+        'position_id',       // ID del Cargo (ej. Médico Veterinario)
+        'payroll_type_id',   // ID del Tipo de Nómina
+        'shift_id',          // ID del Turno (Guardia)
+        'status',            // Estatus (Legacy)
+        'estatus',           // Fijo / Contratado
+        'estadonomina',      // Activo / Inactivo
+        'current_status'     // Estatus Actual (Reposo, Vacaciones, etc.)
     ];
 
-    public function getNameAttribute()
+    /**
+     * Accesor para la Ficha (file_number).
+     * Reemplaza valores nulos o vacíos por un guion para la UI.
+     */
+    protected function fileNumber(): Attribute
     {
-        return "{$this->first_names} {$this->last_names}";
+        return Attribute::make(
+            get: fn (?string $value) => $value ?: '-',
+            set: fn (?string $value) => $value ? str_pad($value, 4, '0', STR_PAD_LEFT) : null,
+        );
     }
+
+    /**
+     * Accesor para el nombre completo.
+     */
+    protected function name(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => "{$this->first_names} {$this->last_names}",
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relaciones
+    |--------------------------------------------------------------------------
+    */
 
     public function state()
     {

@@ -61,6 +61,10 @@ class CertificateCreate extends Component
     public $causeSearch = '';
     public $causeResults = [];
 
+    // Búsqueda de Nave
+    public $naveSearch = '';
+    public $naveResults = [];
+
     // Evidencia Fotográfica
     public $arete_photo;
     public $tatuaje_photo;
@@ -153,6 +157,48 @@ class CertificateCreate extends Component
         $this->causeResults = [];
     }
 
+    public function updatedNaveSearch($value)
+    {
+        if (strlen($value) < 1) {
+            $this->naveResults = [];
+            $this->nave = '';
+            return;
+        }
+
+        $this->naveResults = Barn::where('name', 'like', "%{$value}%")
+            ->orderBy('name')
+            ->take(5)
+            ->get();
+
+        // Si lo que escribió coincide exactamente con una nave, la seleccionamos automáticamente
+        $exact = Barn::where('name', strtoupper(trim($value)))->first();
+        if ($exact) {
+            $this->nave = $exact->name;
+            $this->handleNaveAutoSelection($exact->name);
+        }
+    }
+
+    public function selectNave($name)
+    {
+        $this->nave = $name;
+        $this->naveSearch = $name;
+        $this->naveResults = [];
+        
+        $this->handleNaveAutoSelection($name);
+    }
+
+    private function handleNaveAutoSelection($naveName)
+    {
+        $v = strtoupper(trim($naveName));
+        
+        // Auto-seleccionar Sección C para Naves de Pubertad y Lactancia
+        if (str_starts_with($v, 'PUB') || str_starts_with($v, 'LA') || str_starts_with($v, 'LB') || str_starts_with($v, 'LE')) {
+            $this->seccion = 'C';
+        } else {
+            $this->seccion = '';
+        }
+    }
+
     #[Computed]
     public function deathTypes()
     {
@@ -181,9 +227,9 @@ class CertificateCreate extends Component
         return $barn ? $barn->sections()->orderBy('name')->get() : collect();
     }
 
-    public function updatedNave()
+    public function updatedNave($value)
     {
-        $this->seccion = '';
+        $this->handleNaveAutoSelection($value);
     }
 
     protected $rules = [

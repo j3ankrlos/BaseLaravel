@@ -27,7 +27,6 @@ class WarehouseA002Management extends Component
     
     // Modal properties
     public $productId;
-    public $IdCodigo;
     public $Codigo;
     public $Producto;
     public $UMB;
@@ -39,7 +38,6 @@ class WarehouseA002Management extends Component
     public $isEditMode = false;
 
     protected $rules = [
-        'IdCodigo' => 'required|string|max:255',
         'Codigo' => 'required|string|max:255',
         'Producto' => 'required|string|max:255',
         'UMB' => 'required|string|max:50',
@@ -57,7 +55,7 @@ class WarehouseA002Management extends Component
     public function openModal()
     {
         $this->resetValidation();
-        $this->reset(['productId', 'IdCodigo', 'Codigo', 'Producto', 'UMB', 'Clasificacion', 'Stock', 'StockMin', 'SolicitudMin']);
+        $this->reset(['productId', 'Codigo', 'Producto', 'UMB', 'Clasificacion', 'Stock', 'StockMin', 'SolicitudMin']);
         $this->isEditMode = false;
         $this->dispatch('open-modal', ['id' => 'productModal']);
     }
@@ -67,7 +65,6 @@ class WarehouseA002Management extends Component
         $this->resetValidation();
         $product = WarehouseA002::findOrFail($id);
         $this->productId = $product->id;
-        $this->IdCodigo = $product->IdCodigo;
         $this->Codigo = $product->Codigo;
         $this->Producto = $product->Producto;
         $this->UMB = $product->UMB;
@@ -83,7 +80,6 @@ class WarehouseA002Management extends Component
     public function saveProduct()
     {
         $rules = $this->rules;
-        $rules['IdCodigo'] = 'required|string|max:255|unique:warehouse_a002_s,IdCodigo,' . $this->productId;
         $rules['Codigo'] = 'required|string|max:255|unique:warehouse_a002_s,Codigo,' . $this->productId;
         
         $this->validate($rules);
@@ -91,7 +87,6 @@ class WarehouseA002Management extends Component
         WarehouseA002::updateOrCreate(
             ['id' => $this->productId],
             [
-                'IdCodigo' => $this->IdCodigo,
                 'Codigo' => $this->Codigo,
                 'Producto' => $this->Producto,
                 'UMB' => $this->UMB,
@@ -140,56 +135,74 @@ class WarehouseA002Management extends Component
         try {
             DB::beginTransaction();
 
-            // Set all existing stock to 0 as requested by user logic
-            // "solo actualizaremos las existencias de los productos que esten presente en el excel, los que no esten pasaran a 0"
+            // Seteamos stock a 0 como política habitual
             WarehouseA002::query()->update(['Stock' => 0]);
 
             $path = $this->excelFile->getRealPath();
-
             $rows = SimpleExcelReader::create($path)->getRows();
 
+            $processedCount = 0;
+            $updatedCount = 0;
+            $createdCount = 0;
+
             foreach ($rows as $row) {
-                // Ensure array keys exist or parse properly based on provided headers:
-                // Material, Descripción del material, Lote, Unidad medida base, Libre utilización, En traslado (Centro), Centro, Almacén
-                
-                $codigo = $row['Material'] ?? null;
-                $producto = $row['Descripción del material'] ?? 'Sin Descripción';
-                $umb = $row['Unidad medida base'] ?? 'UN';
-                $stockRaw = $row['Libre utilización'] ?? 0;
+                // Limpieza de datos y mapeo inteligente (Ignoramos mayúsculas/minúsculas en el futuro si fuera necesario, por ahora exactos)
+                $codigo = $row['Material'] ?? $row['Codigo'] ?? $row['CÓDIGO'] ?? $row['codigo'] ?? null;
                 
                 if (!$codigo) continue;
+
+                $processedCount++;
+
+                $producto = $row['Descripción del material'] ?? $row['Producto'] ?? $row['PRODUCTO'] ?? $row['Descripcion'] ?? 'Sin Descripción';
+                $umb = $row['Unidad medida base'] ?? $row['UMB'] ?? $row['Unidad de Medida'] ?? 'UN';
+                $clasificacion = $row['Clasificacion'] ?? $row['Clasificación'] ?? $row['Categoría'] ?? null;
                 
-                // Clean stock value (e.g. converting '1.000,50' to float if necessary, though simple excel usually handles generic numbers)
-                // If it comes as a string, let's cast it safely
+                // Procesamiento de Stock libre utilización
+                $stockRaw = $row['Libre utilización'] ?? $row['Stock'] ?? $row['STOCK'] ?? 0;
+                // Si viene como string con formato europeo (1.234,50), limpiamos
+                if (is_string($stockRaw)) {
+                    $stockRaw = str_replace(['.', ','], ['', '.'], $stockRaw);
+                }
                 $stock = is_numeric($stockRaw) ? (float) $stockRaw : 0;
 
-                // Update or create preserving minimum stocks
+                // Campos para carga completa (si existen en el excel)
+                // Usamos aliases incluyendo la variante con 's' (Solisitud) enviada por el usuario
+                $stockMin = isset($row['StockMin']) ? $row['StockMin'] : ($row['Stock Mínimo'] ?? $row['STOCK MÍNIMO'] ?? null);
+                
+                $solicitudMin = $row['SolicitudMin'] ?? $row['Solicitud Mínima'] ?? $row['SolisitudMin'] ?? $row['SOLICITUD MÍNIMA'] ?? null;
+
+                // Buscamos por código único (Material)
                 $product = WarehouseA002::where('Codigo', (string) $codigo)->first();
 
+                $data = [
+                    'Producto' => (string) $producto,
+                    'UMB' => (string) $umb,
+                    'Stock' => ($product ? $product->Stock : 0) + $stock, // Acumulamos stock si se repite Material
+                ];
+
+                if ($clasificacion !== null) $data['Clasificacion'] = (string) $clasificacion;
+                if ($stockMin !== null && is_numeric($stockMin)) $data['StockMin'] = (float) $stockMin;
+                if ($solicitudMin !== null && is_numeric($solicitudMin)) $data['SolicitudMin'] = (float) $solicitudMin;
+
                 if ($product) {
-                    $product->Stock += $stock; // Accumulate if repeated
-                    $product->Producto = $producto; // Update description if changed
-                    $product->UMB = $umb;
-                    $product->save();
+                    $product->update($data);
+                    $updatedCount++;
                 } else {
-                    WarehouseA002::create([
-                        'IdCodigo' => (string) $codigo, // User usually uses the same for IdCodigo and Codigo in this scenario
-                        'Codigo' => (string) $codigo,
-                        'Producto' => $producto,
-                        'UMB' => $umb,
-                        'Stock' => $stock
-                    ]);
+                    $data['Codigo'] = (string) $codigo;
+                    $data['StockMin'] = $data['StockMin'] ?? 0;
+                    $data['SolicitudMin'] = $data['SolicitudMin'] ?? 0;
+                    WarehouseA002::create($data);
+                    $createdCount++;
                 }
             }
 
             DB::commit();
-
             $this->reset('excelFile');
             
             $this->dispatch('notify', [
                 'icon' => 'success',
                 'title' => 'Importación Exitosa',
-                'text' => 'El inventario del Almacén A002 ha sido actualizado correctamente.'
+                'text' => "Se procesaron {$processedCount} registros: {$updatedCount} actualizados y {$createdCount} nuevos."
             ]);
 
         } catch (\Exception $e) {
@@ -197,7 +210,7 @@ class WarehouseA002Management extends Component
             $this->dispatch('notify', [
                 'icon' => 'error',
                 'title' => 'Error de Importación',
-                'text' => 'Hubo un error procesando el archivo: ' . $e->getMessage()
+                'text' => 'Error: ' . $e->getMessage()
             ]);
         }
     }

@@ -13,7 +13,15 @@ use App\Models\Veterinarian;
 use App\Models\State;
 use App\Models\Municipality;
 use App\Models\Parish;
+use App\Models\Shift;
+use App\Models\Position;
+use App\Models\AssignedPost;
+use App\Models\PayrollType;
 use Livewire\Attributes\Computed;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
+use Spatie\SimpleExcel\SimpleExcelReader;
 
 class EmployeeManagement extends Component
 {
@@ -28,7 +36,10 @@ class EmployeeManagement extends Component
     public $first_names, $last_names, $national_id, $phone_fixed, $phone_mobile;
     public $state_id, $municipality_id, $parish_id, $city, $address;
     public $entry_date, $file_number, $cost_center_code;
-    public $area_id, $assigned_post_id, $unit_id, $position_id, $shift_id, $status = 'Activo';
+    public $area_id, $assigned_post_id, $unit_id, $position_id, $shift_id, $payroll_type_id;
+    public $status = 'Activo'; // Mantener por compatibilidad UI
+    public $estatus = 'Fijo';
+    public $estadonomina = 'Activo';
 
     // Datos exclusivos para Veterinarios
     public $medical_college_code, $ministry_code, $registration_status, $vet_initials;
@@ -43,45 +54,35 @@ class EmployeeManagement extends Component
         \App\Models\ModuleUsage::track('employees', 'Gestión de Personal', '/employees', 'ph-briefcase', 'text-secondary');
     }
 
-    // Sincronización con la URL
     protected $queryString = [
         'search' => ['except' => ''],
         'perPage' => ['except' => 10],
     ];
 
-    /**
-     * Resetea la página cuando se actualiza la búsqueda.
-     */
     public function updatingSearch()
     {
         $this->resetPage();
     }
 
-    /**
-     * Cambia la pestaña activa.
-     */
     public function setActiveTab($tab)
     {
         $this->activeTab = $tab;
     }
 
-    /**
-     * Sincroniza el Centro de Costo automáticamente cuando cambia el Área.
-     */
     public function updatedAreaId($value)
     {
         if ($value) {
             $area = Area::find($value);
             $this->cost_center_code = $area ? $area->cost_center : '';
         }
-        $this->activeTab = 'work'; // Seguir en la pestaña de trabajo al actualizar el centro de costo
+        $this->activeTab = 'work';
     }
 
     public function updatedStateId($value)
     {
         $this->municipality_id = null;
         $this->parish_id = null;
-        $this->activeTab = 'location'; // stay on location tab
+        $this->activeTab = 'location';
     }
 
     public function updatedMunicipalityId($value)
@@ -90,39 +91,35 @@ class EmployeeManagement extends Component
         $this->activeTab = 'location';
     }
 
-    /**
-     * Reacciona cuando cambia el Cargo (Position)
-     */
     public function updatedPositionId($value)
     {
         if ($value) {
-            $position = \App\Models\Position::find($value);
-            // Only update if not manually toggled or if it matches the specific role
-            if ($position && $position->name === 'MEDICO VETERINARIO') {
+            $position = Position::find($value);
+            if ($position && strtoupper($position->name) === 'MEDICO VETERINARIO') {
                 $this->showVetSection = true;
             }
         }
         $this->activeTab = 'work';
     }
 
-
-
     #[Computed]
     public function areas() { return Area::all(); }
     #[Computed]
-    public function assignedPosts() { return \App\Models\AssignedPost::all(); }
+    public function assignedPosts() { return AssignedPost::all(); }
     #[Computed]
-    public function positions() { return \App\Models\Position::where('active', true)->get(); }
+    public function positions() { return Position::where('active', true)->get(); }
     #[Computed]
     public function units() { return Unit::all(); }
     #[Computed]
     public function states() { return State::all(); }
     #[Computed]
-    public function shifts() { return \App\Models\Shift::all(); }
+    public function shifts() { return Shift::all(); }
     #[Computed]
     public function municipalities() { return $this->state_id ? Municipality::where('state_id', $this->state_id)->get() : []; }
     #[Computed]
     public function parishes() { return $this->municipality_id ? Parish::where('municipality_id', $this->municipality_id)->get() : []; }
+    #[Computed]
+    public function payrollTypes() { return PayrollType::all(); }
 
     public function render()
     {
@@ -137,20 +134,9 @@ class EmployeeManagement extends Component
 
         return view('livewire.employee-management', [
             'employees' => $employees,
-            'areas' => $this->areas,
-            'assignedPosts' => $this->assignedPosts,
-            'positions' => $this->positions,
-            'units' => $this->units,
-            'states' => $this->states,
-            'shifts' => $this->shifts,
-            'municipalities' => $this->municipalities,
-            'parishes' => $this->parishes,
         ])->title('Gestión de Personal');
     }
 
-    /**
-     * Prepara el formulario para crear un nuevo empleado.
-     */
     public function create()
     {
         $this->resetFields();
@@ -159,9 +145,6 @@ class EmployeeManagement extends Component
         $this->dispatch('open-modal', ['id' => 'employeeModal']);
     }
 
-    /**
-     * Carga los datos de un empleado para editar.
-     */
     public function edit($id)
     {
         $employee = Employee::findOrFail($id);
@@ -184,15 +167,16 @@ class EmployeeManagement extends Component
         $this->unit_id = $employee->unit_id;
         $this->position_id = $employee->position_id;
         $this->shift_id = $employee->shift_id;
+        $this->payroll_type_id = $employee->payroll_type_id;
         $this->status = $employee->status;
+        $this->estatus = $employee->estatus ?? 'Fijo';
+        $this->estadonomina = $employee->estadonomina ?? 'Activo';
 
-        // Cargar datos de veterinario si aplica
-        $position = \App\Models\Position::find($this->position_id);
-        $this->showVetSection = ($position && $position->name === 'MEDICO VETERINARIO');
+        $position = Position::find($this->position_id);
+        $this->showVetSection = ($position && strtoupper($position->name) === 'MEDICO VETERINARIO');
         
         if ($this->showVetSection) {
             $vet = Veterinarian::where('employee_id', $employee->id)->first();
-            // Si no existe pero el cargo es vet, inicializar
             if ($vet) {
                 $this->medical_college_code = $vet->medical_college_code;
                 $this->ministry_code = $vet->ministry_code;
@@ -205,10 +189,6 @@ class EmployeeManagement extends Component
         $this->isModalOpen = true;
         $this->dispatch('open-modal', ['id' => 'employeeModal']);
     }
-
-    /**
-     * Guarda o actualiza un empleado.
-     */
 
     public function validationAttributes()
     {
@@ -223,13 +203,29 @@ class EmployeeManagement extends Component
             'unit_id' => 'unidad',
             'shift_id' => 'turno',
             'entry_date' => 'fecha de ingreso',
-            'medical_college_code' => 'código del colegio médico',
-            'ministry_code' => 'código del ministerio',
+            'estatus' => 'estatus de contrato',
+            'estadonomina' => 'estado de nómina',
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'required' => 'El campo :attribute es obligatorio.',
+            'min' => 'El campo :attribute debe tener al menos :min caracteres.',
+            'unique' => 'Esta :attribute ya se encuentra registrada en el sistema.',
+            'in' => 'El valor seleccionado para :attribute no es válido.',
+            'exists' => 'La :attribute seleccionada no es válida.',
+            'date' => 'La :attribute debe ser una fecha válida.',
         ];
     }
 
     public function save()
     {
+        // Normalización para evitar errores de validación 'in:...' por mayúsculas/minúsculas de importaciones
+        $this->estatus = ucfirst(strtolower($this->estatus));
+        $this->estadonomina = ucfirst(strtolower($this->estadonomina));
+
         $rules = [
             'first_names' => 'required|min:3',
             'last_names' => 'required|min:3',
@@ -240,7 +236,10 @@ class EmployeeManagement extends Component
             'position_id' => 'required|exists:positions,id',
             'unit_id' => 'nullable|exists:units,id',
             'shift_id' => 'nullable|exists:shifts,id',
+            'payroll_type_id' => 'nullable|exists:payroll_types,id',
             'entry_date' => 'nullable|date',
+            'estatus' => 'required|in:Fijo,Contratado',
+            'estadonomina' => 'required|in:Activo,Inactivo',
         ];
 
         if ($this->showVetSection) {
@@ -250,7 +249,7 @@ class EmployeeManagement extends Component
 
         $this->validate($rules);
 
-        \Illuminate\Support\Facades\DB::transaction(function () {
+        DB::transaction(function () {
             $employee = Employee::updateOrCreate(['id' => $this->employeeId], [
                 'first_names' => $this->first_names,
                 'last_names' => $this->last_names,
@@ -270,7 +269,10 @@ class EmployeeManagement extends Component
                 'unit_id' => $this->unit_id,
                 'position_id' => $this->position_id,
                 'shift_id' => $this->shift_id,
-                'status' => $this->status,
+                'payroll_type_id' => $this->payroll_type_id,
+                'status' => $this->estadonomina, // Sincronizamos con el estado de nómina
+                'estatus' => $this->estatus,
+                'estadonomina' => $this->estadonomina,
             ]);
 
             if ($this->showVetSection) {
@@ -282,7 +284,6 @@ class EmployeeManagement extends Component
                     'initials' => $this->vet_initials,
                 ]);
             } else {
-                // Si ya no es veterinario, limpiar registro si existía
                 Veterinarian::where('employee_id', $employee->id)->delete();
             }
         });
@@ -296,9 +297,6 @@ class EmployeeManagement extends Component
         $this->dispatch('close-modal', ['id' => 'employeeModal']);
     }
 
-    /**
-     * Dispara la confirmación de eliminación.
-     */
     public function delete($id)
     {
         $this->dispatch('confirm-delete', [
@@ -309,155 +307,160 @@ class EmployeeManagement extends Component
         ]);
     }
 
-    /**
-     * Escucha el evento de confirmación para borrar definitivamente.
-     */
     #[On('delete-employee-confirmed')]
     public function deleteConfirmed($id)
     {
-        Employee::find($id)->delete();
-        $this->dispatch('notify', ['icon' => 'success', 'title' => 'Empleado eliminado']);
+        $employee = Employee::find($id);
+        if ($employee) {
+            $employee->delete();
+            $this->dispatch('notify', ['icon' => 'success', 'title' => 'Empleado eliminado']);
+        } else {
+            $this->dispatch('notify', ['icon' => 'warning', 'title' => 'Registro no encontrado', 'text' => 'El empleado ya no existe en el sistema.']);
+        }
     }
 
-    /**
-     * Limpia los campos del formulario.
-     */
     public function resetFields()
     {
         $this->reset([
             'employeeId', 'first_names', 'last_names', 'national_id', 'phone_fixed', 
             'phone_mobile', 'state_id', 'municipality_id', 'parish_id', 'city', 'address',
             'entry_date', 'file_number', 'cost_center_code', 'area_id', 'assigned_post_id', 'unit_id', 
-            'position_id', 'status', 'medical_college_code', 'ministry_code', 'registration_status', 'vet_initials', 'showVetSection', 'importFile'
+            'position_id', 'shift_id', 'payroll_type_id', 'status', 'estatus', 'estadonomina', 'medical_college_code', 'ministry_code', 'registration_status', 'vet_initials', 'showVetSection', 'importFile'
         ]);
         $this->status = 'Activo';
+        $this->estatus = 'Fijo';
+        $this->estadonomina = 'Activo';
     }
 
-    /**
-     * Importación masiva desde CSV
-     */
-    /**
-     * Se ejecuta automáticamente cuando el archivo termina de subirse
-     */
     public function updatedImportFile()
     {
         $this->importEmployees();
     }
 
     /**
-     * Importación masiva desde CSV
+     * Importación masiva desde Excel o CSV
      */
     public function importEmployees()
     {
         try {
             $this->validate([
-                'importFile' => 'required|max:2048' // Quitamos mimes temporalmente para evitar bloqueos por tipo de archivo
+                'importFile' => 'required|max:10240|mimes:xlsx,xls,csv,txt'
             ]);
 
             $path = $this->importFile->getRealPath();
-            
-            // Detectar codificación y convertir a UTF-8 si es necesario
-            $csvContent = file_get_contents($path);
-            $encoding = mb_detect_encoding($csvContent, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
-            if ($encoding && $encoding !== 'UTF-8') {
-                $csvContent = mb_convert_encoding($csvContent, 'UTF-8', $encoding);
-                file_put_contents($path, $csvContent);
-            }
-
-            // Detectar delimitador
-            $firstLine = strtok($csvContent, "\n");
-            $delimiter = (strpos($firstLine, ';') !== false) ? ';' : ',';
-            
-            $handle = fopen($path, 'r');
-            
-            // Omitir cabecera
-            fgetcsv($handle, 0, $delimiter); 
+            $rows = SimpleExcelReader::create($path)->getRows();
 
             $count = 0;
             $errors = 0;
-            $rowNumber = 1;
 
-            \Illuminate\Support\Facades\DB::beginTransaction();
+            DB::beginTransaction();
 
-            while (($data = fgetcsv($handle, 0, $delimiter)) !== FALSE) {
-                $rowNumber++;
-                
-                // Limpiar espacios y manejar nulos
-                $data = array_map(function($item) {
-                    return $item === "" ? null : trim($item);
-                }, $data);
-                
-                if (count($data) < 4 || empty($data[3])) {
+            foreach ($rows as $row) {
+                $get = function($names) use ($row) {
+                    foreach ((array)$names as $name) {
+                        $cleanName = strtolower(trim($name));
+                        $cleanName = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $cleanName);
+                        
+                        // Simplificamos la búsqueda en el array de la fila
+                        foreach ($row as $key => $value) {
+                            $cleanKey = strtolower(trim($key));
+                            $cleanKey = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $cleanKey);
+                            if ($cleanKey === $cleanName && !empty($value)) {
+                                return is_string($value) ? trim($value) : $value;
+                            }
+                        }
+                    }
+                    return null;
+                };
+
+                $nationalId = (string) $get(['cedula', 'identidad', 'dni', 'id', 'DNI', 'IDENTIDAD', 'CEDULA']);
+                if (empty($nationalId)) {
                     $errors++;
                     continue; 
                 }
 
-                $positionName = $data[13] ?? '';
-                $areaName = $data[14] ?? '';
-                $postName = $data[16] ?? '';
-                
-                $position = \App\Models\Position::where('name', $positionName)->first();
-                $area = \App\Models\Area::where('name', $areaName)->first();
-                $assignedPost = \App\Models\AssignedPost::where('name', $postName)->first();
+                // --- MAPPING DE RELACIONES ---
+                $positionName = $get(['cargo', 'posicion', 'posicion_actual']);
+                $areaName     = $get(['area centro de costo', 'area', 'centro de costo', 'area cc', 'departamento']);
+                $postName     = $get(['area asignada', 'puesto', 'puesto asignado', 'asignacion', 'seccion']);
+                $shiftCode    = $get(['turno', 'horario', 'rotacion']);
+                $unitName     = $get(['unidadproduccion', 'unidad', 'sitio', 'finca', 'unidad_produccion']);
+                $payrollName  = $get(['nomina', 'tipo nomina', 'tipo de nomina', 'tipo_nomina']);
 
-                $entryDate = null;
-                if (!empty($data[10])) {
-                    try {
-                        if (strpos($data[10], '/') !== false) {
-                            $entryDate = \Carbon\Carbon::createFromFormat('d/m/Y', $data[10])->format('Y-m-d');
-                        } else {
-                            $entryDate = \Carbon\Carbon::parse($data[10])->format('Y-m-d');
-                        }
-                    } catch (\Exception $e) {
-                        $entryDate = null;
-                    }
+                $position     = $positionName ? Position::whereRaw('UPPER(name) = ?', [strtoupper($positionName)])->first() : null;
+                $area         = $areaName ? Area::whereRaw('UPPER(name) = ?', [strtoupper($areaName)])->first() : null;
+                $assignedPost = $postName ? AssignedPost::whereRaw('UPPER(name) = ?', [strtoupper($postName)])->first() : null;
+                $shift        = $shiftCode ? Shift::whereRaw('UPPER(code) = ?', [strtoupper($shiftCode)])
+                                             ->orWhereRaw('UPPER(name) = ?', [strtoupper($shiftCode)])->first() : null;
+                $unit         = $unitName ? Unit::whereRaw('UPPER(name) = ?', [strtoupper($unitName)])->first() : null;
+                
+                // Mapeo de Nómina: Por ID o por Nombre
+                $payrollTypeId = $get(['fk_idtiponomina', 'nomina_id', 'payroll_type_id']);
+                $payrollType   = null;
+                if (is_numeric($payrollTypeId)) {
+                    $payrollType = PayrollType::find($payrollTypeId);
+                }
+                if (!$payrollType && $payrollName) {
+                    $payrollType = PayrollType::whereRaw('UPPER(name) = ?', [strtoupper($payrollName)])->first();
                 }
 
+                // --- FECHA ---
+                $entryDate = null;
+                $dateRaw = $get(['fechaingreso', 'fecha ingreso', 'ingreso', 'fecha_ingreso', 'fecha']);
+                if (!empty($dateRaw)) {
+                    try {
+                        $entryDate = Carbon::parse($dateRaw)->format('Y-m-d');
+                    } catch (\Exception $e) { $entryDate = null; }
+                }
+
+                // --- SEGURIDAD EN IDs GEOGRÁFICOS ---
+                $stateId = $get(['fk_idestador', 'estado_id']);
+                $munId   = $get(['fk_idmunicipior', 'municipio_id']);
+                $parId   = $get(['fk_idparroquiar', 'parroquia_id']);
+
                 Employee::updateOrCreate(
-                    ['national_id' => $data[3]],
+                    ['national_id' => $nationalId],
                     [
-                        'first_names'      => $data[1] ?? 'S/N',
-                        'last_names'       => $data[2] ?? 'S/N',
-                        'phone_mobile'     => $data[4],
-                        'state_id'         => is_numeric($data[5]) ? $data[5] : null,
-                        'municipality_id'  => is_numeric($data[6]) ? $data[6] : null,
-                        'parish_id'        => is_numeric($data[7]) ? $data[7] : null,
-                        'city'             => $data[8],
-                        'address'          => $data[9],
+                        'first_names'      => $get(['nombres', 'primer nombre', 'nombre']) ?? 'S/N',
+                        'last_names'       => $get(['apellidos', 'segundo nombre', 'apellido']) ?? 'S/N',
+                        'phone_mobile'     => $get(['telefono', 'celular', 'telefono movil', 'movil']),
+                        'phone_fixed'      => $get(['telefono fijo', 'fijo', 'casa']),
+                        'state_id'         => is_numeric($stateId) && State::find($stateId) ? $stateId : null,
+                        'municipality_id'  => is_numeric($munId) && Municipality::find($munId) ? $munId : null,
+                        'parish_id'        => is_numeric($parId) && Parish::find($parId) ? $parId : null,
+                        'city'             => $get(['ciudad', 'localidad']),
+                        'address'          => $get(['direccion', 'domicilio', 'direccion_exacta']),
                         'entry_date'       => $entryDate,
-                        'file_number'      => $data[11],
-                        'payroll_type_id'  => is_numeric($data[12]) ? $data[12] : null,
-                        'position_id'      => $position ? $position->id : null,
-                        'area_id'          => $area ? $area->id : null,
-                        'cost_center_code' => $data[15] ?? ($area ? $area->cost_center : null),
-                        'assigned_post_id' => $assignedPost ? $assignedPost->id : null,
-                        'status'           => 'Activo'
+                        'file_number'      => $get(['numeroficha', 'ficha', 'num ficha', 'expediente', 'id_ficha']),
+                        'payroll_type_id'  => $payrollType?->id,
+                        'position_id'      => $position?->id,
+                        'area_id'          => $area?->id,
+                        'cost_center_code' => $get(['centrocosto', 'codigo centro costo', 'centro_costo']) ?? $area?->cost_center,
+                        'assigned_post_id' => $assignedPost?->id,
+                        'shift_id'         => $shift?->id,
+                        'unit_id'          => $unit?->id,
+                        'estatus'          => $get(['estatus', 'tipo contrato', 'condicion']) ?? 'Fijo',
+                        'estadonomina'     => $get(['estadonomina', 'estado nomina', 'estado', 'nomina']) ?? 'Activo',
+                        'status'           => $get(['estadonomina', 'estado nomina', 'estado', 'nomina']) ?? 'Activo',
+                        'current_status'   => $get(['estatusactual', 'estatus actual', 'incidencia']) ?: null,
                     ]
                 );
                 $count++;
             }
 
-            \Illuminate\Support\Facades\DB::commit();
-            fclose($handle);
+            DB::commit();
             
             $this->reset('importFile');
             $this->dispatch('notify', [
                 'icon' => $errors > 0 ? 'warning' : 'success', 
                 'title' => "Carga completa: $count procesados",
-                'text' => $errors > 0 ? "Se omitieron $errors filas por datos inválidos." : ""
+                'text' => $errors > 0 ? "Se omitieron $errors filas sin identificación." : "Importación exitosa."
             ]);
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\DB::rollBack();
-            if (isset($handle)) fclose($handle);
-            
-            \Illuminate\Support\Facades\Log::error("Error importando empleados: " . $e->getMessage());
-            
-            $this->dispatch('notify', [
-                'icon' => 'error',
-                'title' => 'Error en la importación',
-                'text' => 'Ocurrió un error al procesar el archivo. Revisa el formato CSV.'
-            ]);
+            if (DB::transactionLevel() > 0) DB::rollBack();
+            Log::error("Error importando empleados: " . $e->getMessage());
+            $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error de carga', 'text' => "Verifique el formato: " . $e->getMessage()]);
         }
     }
 }

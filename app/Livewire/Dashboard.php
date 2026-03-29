@@ -7,8 +7,10 @@ use App\Models\WarehouseA002;
 use App\Models\WarehouseA006;
 use App\Models\TransferRequest;
 use App\Models\Employee;
+use App\Models\EmployeeIncident;
 use App\Models\User;
 use App\Models\ModuleUsage;
+use Carbon\Carbon;
 
 class Dashboard extends Component
 {
@@ -22,6 +24,15 @@ class Dashboard extends Component
 
         // Alertas: productos en A006 con stock crítico (stock <= StockMin)
         $alertasA006 = WarehouseA006::whereColumn('Stock', '<=', 'StockMin')->count();
+
+        // Estadísticas Globales de Personal (Incidencias Actuales)
+        $statsReposos    = Employee::where('current_status', 'Reposo')->count();
+        $statsVacaciones = Employee::where('current_status', 'Vacaciones')->count();
+
+        // Incidencias cuya fecha de fin ya pasó pero no se han confirmado como Cumplidas
+        $statsIncidentesPendientes = EmployeeIncident::where('status', '!=', 'Cumplido')
+            ->whereDate('end_date', '<', Carbon::today())
+            ->count();
 
         // Actividad reciente: últimas solicitudes
         $recentRequests = TransferRequest::with(['solicitante', 'aprobador', 'details'])
@@ -45,13 +56,17 @@ class Dashboard extends Component
         }
 
         return view('livewire.dashboard', [
-            'statsA002'             => $statsA002,
-            'statsA006'             => $statsA006,
-            'statsEmployees'        => $statsEmployees,
-            'solicitudesPendientes' => $solicitudesPendientes,
-            'alertasA006'           => $alertasA006,
-            'recentRequests'        => $recentRequests,
-            'topModules'            => $topModules,
+            'statsA002'                 => $statsA002,
+            'statsA006'                 => $statsA006,
+            'statsEmployees'            => $statsEmployees,
+            'statsReposos'              => $statsReposos,
+            'statsVacaciones'           => $statsVacaciones,
+            'statsIncidentesPendientes' => $statsIncidentesPendientes,
+            'solicitudesPendientes'     => $solicitudesPendientes,
+            'alertasA006'               => $alertasA006,
+            'recentRequests'            => $recentRequests,
+            'topModules'                => $topModules,
         ])->title('Resumen del Sistema');
     }
 }
+

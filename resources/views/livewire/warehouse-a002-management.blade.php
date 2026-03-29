@@ -16,7 +16,7 @@
         <div class="card-body">
             <div class="input-group">
                 <span class="input-group-text bg-light"><i class="ph ph-magnifying-glass"></i></span>
-                <input type="text" class="form-control" placeholder="Buscar por código, Id o descripción del producto..." wire:model.live.debounce.300ms="search">
+                <input type="text" class="form-control" placeholder="Buscar por código o descripción del producto..." wire:model.live.debounce.300ms="search">
             </div>
         </div>
     </div>
@@ -85,12 +85,7 @@
                 <div class="modal-body p-4">
                     <form wire:submit.prevent="saveProduct">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold small text-uppercase text-secondary">IdCódigo <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control bg-light" wire:model="IdCodigo" required>
-                                @error('IdCodigo') <span class="text-danger small">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Código <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control bg-light" wire:model="Codigo" required>
                                 @error('Codigo') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -155,10 +150,10 @@
                 <div class="modal-body p-4">
                     <div class="alert alert-info border-0 bg-info-subtle text-info small mb-4">
                         <i class="ph ph-info me-2"></i>
-                        <strong>Lógica de Importación:</strong>
+                        <strong>Carga Inteligente / Completa:</strong>
                         <ul class="mb-0 ps-3 mt-2">
-                            <li>Se actualizará el stock de códigos existentes.</li>
-                            <li>Códigos fuera del Excel se pondrán en 0.</li>
+                            <li>Se crearán nuevos productos o se actualizarán los existentes (incluyendo clasificación y stocks mínimos).</li>
+                            <li>Los productos fuera del Excel se pondrán en 0 existencias automáticamente.</li>
                         </ul>
                     </div>
 

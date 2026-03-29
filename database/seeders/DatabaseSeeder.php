@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             DeathSystemAndCauseSeeder::class,
             DeathTypeAndStatusSeeder::class,
             VeterinarianSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }
+

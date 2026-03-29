@@ -17,8 +17,8 @@ class ShiftSeeder extends Seeder
                 'code' => 'T1',
                 'name' => 'Turno Diurno',
                 'working_day' => 'D',
-                'start_time' => '07:30:00',
-                'end_time' => '16:00:00',
+                'start_time' => '07:15:00',
+                'end_time' => '16:15:00',
                 'total_hours' => 7.5,
                 'break_schedule' => '12:00 pm 1:00 pm'
             ],
