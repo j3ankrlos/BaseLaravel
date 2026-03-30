@@ -5,9 +5,6 @@
             <p class="text-muted small mt-1 mb-0">Gestión y control de registros acumulados por sala.</p>
         </div>
         <div class="col-md-6 text-end d-flex justify-content-end gap-2">
-            <a href="/genetic-selection/import" class="btn btn-outline-primary border-2 shadow-sm fw-bold px-3 py-2" wire:navigate>
-                <i class="ph ph-file-xls me-1"></i> Importar Excel
-            </a>
             <a href="/genetic-selection/births" class="btn btn-primary shadow-sm fw-bold px-4 py-2" wire:navigate>
                 <i class="ph ph-plus-circle me-1"></i> Registrar Nuevo Parto
             </a>

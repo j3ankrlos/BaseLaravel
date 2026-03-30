@@ -49,6 +49,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/inventory/list', \App\Livewire\Inventory\InventoryListView::class)->name('inventory.list');
     Route::get('/inventory/traceability', \App\Livewire\Inventory\TraceabilityViewer::class)->name('inventory.traceability');
 
+    Route::get('/system/data-migration', \App\Livewire\System\DataMigration::class)->name('system.migration');
+
     Route::post('/logout', function () {
         Auth::logout();
         session()->invalidate();

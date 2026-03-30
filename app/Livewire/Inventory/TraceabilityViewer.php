@@ -7,7 +7,7 @@ use App\Models\Movement;
 use App\Models\BirthDetail;
 use App\Models\BarnSection;
 use App\Models\Barn;
-use App\Models\Pen;
+use App\Models\Stage;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Title;
@@ -57,15 +57,13 @@ class TraceabilityViewer extends Component
 
     public function render()
     {
-        $animals = collect();
         $combined = collect();
 
         if (!empty($this->search)) {
-            $animalsQuery = Animal::with(['stage', 'barnSection', 'pen', 'genetic'])
-                ->where('identifier', 'like', '%' . $this->search . '%')
+            $animalsQuery = Animal::with(['stage', 'nave', 'seccion', 'genetic'])
+                ->where('internal_id', 'like', '%' . $this->search . '%')
                 ->orWhere('management_lot', 'like', '%' . $this->search . '%')
                 ->orWhere('lote_sap', 'like', '%' . $this->search . '%')
-                ->orWhere('internal_id', 'like', '%' . $this->search . '%')
                 ->orderBy('created_at', 'desc')
                 ->get();
             
@@ -85,29 +83,22 @@ class TraceabilityViewer extends Component
             foreach ($birthsQuery as $b) {
                 $fake = new Animal();
                 $fake->fake_id = 'b_' . $b->id;
-                $fake->identifier = $b->generated_id;
+                $fake->internal_id = $b->generated_id;
                 $fake->management_lot = $b->birth->maternity_lot ?? 'No asig.';
-                $fake->internal_id = $b->ear_id;
-                $fake->lote_sap = null;
-                $fake->type = 'LECHON';
                 $fake->status = $b->status;
                 $fake->created_at = $b->created_at;
                 $fake->weight = $b->weight;
                 $fake->sex = $b->sex;
+                $fake->stage_id = 0; // Fake ID for frontend
                 
                 $fake->setRelation('genetic', $b->birth->genetic);
+                $fake->setRelation('stage', new Stage(['name' => 'PREDESTETE']));
                 
-                $fakeStage = new \App\Models\Stage(['name' => 'PREDESTETE']);
-                $fake->setRelation('stage', $fakeStage);
-                
-                $fakeBarnSection = new BarnSection(['name' => 'Sala ' . ($b->birth->room ?? '')]);
-                $fakeBarn = new Barn(['name' => 'Maternidad']);
-                $fakeBarnSection->setRelation('barn', $fakeBarn);
-                
-                $fake->setRelation('barnSection', $fakeBarnSection);
-                
-                $fakePen = new Pen(['name' => $b->birth->cage ?? '']);
-                $fake->setRelation('pen', $fakePen);
+                $fakeNave = new Barn(['name' => 'Maternidad']);
+                $fakeSeccion = new BarnSection(['name' => 'Sala ' . ($b->birth->room ?? '')]);
+                $fake->setRelation('nave', $fakeNave);
+                $fake->setRelation('seccion', $fakeSeccion);
+                $fake->corral = $b->birth->cage;
 
                 $combined->push($fake);
             }
@@ -136,40 +127,31 @@ class TraceabilityViewer extends Component
                 if ($b) {
                     $fake = new Animal();
                     $fake->fake_id = 'b_' . $b->id;
-                    $fake->identifier = $b->generated_id;
+                    $fake->internal_id = $b->generated_id;
                     $fake->management_lot = $b->birth->maternity_lot ?? 'No asig.';
-                    $fake->internal_id = $b->ear_id;
-                    $fake->lote_sap = null;
-                    $fake->type = 'LECHON';
                     $fake->status = $b->status;
                     $fake->created_at = $b->created_at;
                     $fake->weight = $b->weight;
                     $fake->sex = $b->sex;
-                    
                     $fake->entry_date = \Carbon\Carbon::parse($b->birth->calendar_date);
-                    $fake->pic_cycle = $b->birth->pic_cycle;
-                    $fake->pic_day = str_pad($b->birth->pic_day, 3, '0', STR_PAD_LEFT);
                     $fake->source = 'MATERNIDAD';
                     
                     $fake->setRelation('genetic', $b->birth->genetic);
+                    $fake->setRelation('stage', new Stage(['name' => 'PREDESTETE']));
                     
-                    $fakeStage = new \App\Models\Stage(['name' => 'PREDESTETE']);
-                    $fake->setRelation('stage', $fakeStage);
-                    $fakeBarnSection = new BarnSection(['name' => 'Sala ' . ($b->birth->room ?? '')]);
-                    $fakeBarn = new Barn(['name' => 'Maternidad']);
-                    $fakeBarnSection->setRelation('barn', $fakeBarn);
-                    $fake->setRelation('barnSection', $fakeBarnSection);
-                    
-                    $fakePen = new Pen(['name' => $b->birth->cage ?? '']);
-                    $fake->setRelation('pen', $fakePen);
+                    $fakeNave = new Barn(['name' => 'Maternidad']);
+                    $fakeSeccion = new BarnSection(['name' => 'Sala ' . ($b->birth->room ?? '')]);
+                    $fake->setRelation('nave', $fakeNave);
+                    $fake->setRelation('seccion', $fakeSeccion);
+                    $fake->corral = $b->birth->cage;
 
                     $selectedAnimal = $fake;
                     $birthEvent = $b;
                 }
             } else {
-                $selectedAnimal = Animal::with(['stage', 'barnSection.barn', 'pen', 'genetic', 'parentAnimal'])->find($this->selected_animal_id);
+                $selectedAnimal = Animal::with(['stage', 'nave', 'seccion', 'genetic', 'parentAnimal'])->find($this->selected_animal_id);
                 if ($selectedAnimal) {
-                    $movements = Movement::with(['user', 'fromBarnSection.barn', 'toBarnSection.barn', 'fromStage', 'toStage', 'deathCause'])
+                    $movements = Movement::with(['user', 'fromNave', 'toNave', 'fromSeccion', 'toSeccion', 'fromStage', 'toStage', 'deathCause'])
                         ->where('animal_id', $this->selected_animal_id)
                         ->orderBy('movement_date', 'desc')
                         ->orderBy('created_at', 'desc')

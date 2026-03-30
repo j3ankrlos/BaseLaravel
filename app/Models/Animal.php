@@ -7,22 +7,33 @@ use Illuminate\Database\Eloquent\Model;
 class Animal extends Model
 {
     protected $fillable = [
-        // Core
-        'type', 'primera', 'cola', 'saman',
-        'quantity', 'entry_date', 'pic_cycle', 'pic_day',
-        'source', 'management_lot', 'internal_id', 'identifier', 'parent_animal_id',
-        // Physical & Genetic
-        'genetic_id', 'sex', 'weight',
-        // Locations
-        'barn_id', 'barn_section_id', 'pen_id',
-        // SAP & Status
-        'lote_sap', 'activo_excel', 'status', 'order_number', 'feed_type',
-        // App logic
-        'stage_id', 'farm', 'age_days',
+        'quantity',
+        'entry_date',
+        'source',
+        'age_days',
+        'management_lot',
+        'internal_id',
+        'birth_date',
+        'father_id',
+        'mother_id',
+        'genetic_id',
+        'sex',
+        'lote_sap',
+        'act_curso',
+        'order_number',
+        'evento',
+        'weight',
+        'nave_id',
+        'seccion_id',
+        'corral',
+        'stage_id',
+        'feed_type',
+        'status',
     ];
 
     protected $casts = [
         'entry_date' => 'date',
+        'birth_date' => 'date',
         'weight'     => 'decimal:2',
     ];
 
@@ -32,14 +43,14 @@ class Animal extends Model
         return $this->belongsTo(Genetic::class);
     }
 
-    public function barn()
+    public function nave()
     {
-        return $this->belongsTo(Barn::class);
+        return $this->belongsTo(Barn::class, 'nave_id');
     }
 
-    public function barnSection()
+    public function seccion()
     {
-        return $this->belongsTo(BarnSection::class);
+        return $this->belongsTo(BarnSection::class, 'seccion_id');
     }
 
     public function pen()
@@ -52,9 +63,14 @@ class Animal extends Model
         return $this->belongsTo(Stage::class);
     }
 
-    public function parentAnimal()
+    public function mother()
     {
-        return $this->belongsTo(Animal::class, 'parent_animal_id');
+        return $this->belongsTo(Animal::class, 'mother_id');
+    }
+
+    public function father()
+    {
+        return $this->belongsTo(Animal::class, 'father_id');
     }
 
     public function movements()

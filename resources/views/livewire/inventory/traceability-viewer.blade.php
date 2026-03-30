@@ -46,7 +46,7 @@
                                             class="w-100 text-start btn rounded-0 py-3 px-4 border-0 @if($selected_animal_id == $rowId) btn-light bg-info bg-opacity-10 border-bottom border-info border-3 @else btn-white @endif">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <div class="fw-bold text-dark">{{ $animal->identifier ?? $animal->management_lot }}</div>
+                                                <div class="fw-bold text-dark">{{ $animal->internal_id ?? $animal->management_lot }}</div>
                                                 <div class="smallest text-muted text-uppercase mt-1">
                                                     <i class="ph ph-dna text-info me-1"></i>{{ $animal->genetic->name }}
                                                 </div>
@@ -91,7 +91,7 @@
                             </div>
                             <div class="p-3 px-4 w-100">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h4 class="fw-bolder mb-0 text-dark">{{ $selectedAnimal->identifier ?? $selectedAnimal->management_lot }}</h4>
+                                    <h4 class="fw-bolder mb-0 text-dark">{{ $selectedAnimal->internal_id ?? $selectedAnimal->management_lot }}</h4>
                                     <span class="badge {{ $selectedAnimal->status == 'Activo' ? 'bg-success' : 'bg-danger' }} rounded-pill px-3 py-1 fw-bold fs-7 shadow-sm">
                                         <i class="ph ph-check-circle me-1"></i>{{ $selectedAnimal->status }}
                                     </span>
@@ -101,11 +101,11 @@
                                     <span class="text-black-50 opacity-25">|</span>
                                     <div><span class="text-muted">Sexo/Tipo:</span> <strong class="text-dark">{{ $selectedAnimal->sex }}</strong></div>
                                     <span class="text-black-50 opacity-25">|</span>
-                                    <div><span class="text-muted">Edad:</span> <strong class="text-primary">{{ $selectedAnimal->age_days }} días</strong></div>
+                                    <div><span class="text-muted">Edad:</span> <strong class="text-primary">{{ $selectedAnimal->age_days ?? 0 }} días</strong></div>
                                     <span class="text-black-50 opacity-25">|</span>
                                     <div><span class="text-muted">SAP:</span> <strong class="text-dark">{{ $selectedAnimal->lote_sap ?? 'Sin asignar' }}</strong></div>
                                     <span class="text-black-50 opacity-25">|</span>
-                                    <div><span class="text-muted">Ubicación Actual:</span> <strong class="text-dark"><i class="ph ph-map-pin text-info me-1"></i>{{ $selectedAnimal->barnSection->barn->name ?? '' }} - {{ $selectedAnimal->barnSection->name ?? '' }}</strong></div>
+                                    <div><span class="text-muted">Ubicación Actual:</span> <strong class="text-dark"><i class="ph ph-map-pin text-info me-1"></i>{{ $selectedAnimal->nave->name ?? '' }} @if($selectedAnimal->seccion) - {{ $selectedAnimal->seccion->name }} @endif @if($selectedAnimal->corral) (C-{{ $selectedAnimal->corral }}) @endif</strong></div>
                                 </div>
                             </div>
                         </div>
@@ -135,18 +135,14 @@
                                 <table class="table table-sm table-borderless">
                                     <tr>
                                         <td class="text-muted small py-2">Fecha de Ingreso:</td>
-                                        <td class="fw-bold py-2">{{ $selectedAnimal->entry_date ? $selectedAnimal->entry_date->format('d/m/Y') : 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted small py-2">PIC Ingreso:</td>
-                                        <td class="fw-bold py-2">{{ $selectedAnimal->pic_cycle }}-{{ $selectedAnimal->pic_day }}</td>
+                                        <td class="fw-bold py-2">{{ $selectedAnimal->entry_date ? \Carbon\Carbon::parse($selectedAnimal->entry_date)->format('d/m/Y') : 'N/A' }}</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted small py-2">Peso Ingreso:</td>
                                         <td class="fw-bold py-2 text-info">{{ number_format($selectedAnimal->weight, 2, ',', '.') }} Kg</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted small py-2">Origen (Sala):</td>
+                                        <td class="text-muted small py-2">Origen:</td>
                                         <td class="fw-bold py-2">{{ $selectedAnimal->source }}</td>
                                     </tr>
                                 </table>
@@ -166,7 +162,7 @@
                                         <td class="text-muted small py-2">Lote Original:</td>
                                         <td class="fw-bold py-2">
                                             <a href="javascript:void(0)" wire:click="selectAnimal({{ $selectedAnimal->parent_animal_id }})" class="text-decoration-none">
-                                                {{ $selectedAnimal->parentAnimal->management_lot }} <i class="ph ph-arrow-square-out smallest"></i>
+                                                {{ $selectedAnimal->parentAnimal->management_lot ?? 'ID: '.$selectedAnimal->parent_animal_id }} <i class="ph ph-arrow-square-out smallest"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -215,8 +211,7 @@
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="rounded-circle bg-{{ $this->getMovementColor($movement->movement_type) }}" style="width: 8px; height: 8px;"></div>
                                                     <div>
-                                                        <span class="fw-bold text-dark d-block mb-1">{{ $movement->movement_date->format('d/m/Y') }}</span>
-                                                        <span class="smallest fw-bold text-muted bg-light px-2 py-1 rounded">PIC: {{ $movement->pic_cycle }}-{{ str_pad($movement->pic_day, 3, '0', STR_PAD_LEFT) }}</span>
+                                                        <span class="fw-bold text-dark d-block mb-1">{{ \Carbon\Carbon::parse($movement->movement_date)->format('d/m/Y') }}</span>
                                                     </div>
                                                 </div>
                                             </td>
@@ -233,15 +228,12 @@
                                                     @if($movement->deathCause)
                                                         <br><span class="smallest text-danger fw-bold"><i class="ph ph-skull me-1"></i>{{ $movement->deathCause->name }}</span>
                                                     @endif
-                                                    @if($movement->boar_identifier)
-                                                        <br><span class="smallest text-primary fw-bold"><i class="ph ph-target me-1"></i>Verraco: {{ $movement->boar_identifier }}</span>
-                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
-                                                @if($movement->toBarnSection)
-                                                    <div class="fw-bold text-dark">{{ $movement->toBarnSection->name ?? '' }}</div>
-                                                    <div class="smallest text-muted">{{ $movement->toBarnSection->barn->name ?? '' }} @if($movement->to_pen_id) (C-{{ $movement->to_pen_id }}) @endif</div>
+                                                @if($movement->toNave)
+                                                    <div class="fw-bold text-dark">{{ $movement->toNave->name ?? '' }}</div>
+                                                    <div class="smallest text-muted">@if($movement->toSeccion) {{ $movement->toSeccion->name }} @endif @if($movement->to_corral) (C-{{ $movement->to_corral }}) @endif</div>
                                                 @else
                                                     <span class="text-muted">-</span>
                                                 @endif
@@ -259,7 +251,7 @@
                                     @endforeach
 
                                     @if($birthEvent && $birthEvent->birth)
-                                        <tr>
+                                        <tr style="background-color: rgba(111, 66, 193, 0.02);">
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="rounded-circle" style="width: 8px; height: 8px; background-color: #6f42c1;"></div>
@@ -283,10 +275,10 @@
                                             </td>
                                             <td>
                                                 <div class="fw-bold text-dark">Maternidad</div>
-                                                <div class="smallest text-muted">Sala {{ $birthEvent->birth->room }}</div>
+                                                <div class="smallest text-muted">Sala {{ $birthEvent->birth->room }} (C-{{ $birthEvent->birth->cage }})</div>
                                             </td>
                                             <td class="text-center">
-                                                <span class="fw-bold text-dark">-</span>
+                                                <span class="fw-bold text-dark">1</span>
                                             </td>
                                             <td>
                                                 <div class="fw-bold text-dark">{{ $birthEvent->birth->responsible->name ?? 'Sistema' }}</div>

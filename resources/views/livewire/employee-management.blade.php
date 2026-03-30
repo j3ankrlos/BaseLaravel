@@ -5,24 +5,6 @@
                 <input wire:model.live.debounce.300ms="search" type="search" class="form-control" placeholder="Buscar por nombre o cédula...">
             </div>
             <div class="col-12 col-md-auto text-end">
-                <!-- Botón de Importar -->
-                <button onclick="document.getElementById('importFile').click()" class="btn btn-outline-success shadow-sm me-1" title="Cargar empleados desde Excel o CSV">
-                    <i class="ph ph-file-xls me-1"></i> <span class="d-none d-lg-inline">Importar</span>
-                </button>
-                <input type="file" id="importFile" wire:model.live="importFile" class="d-none" accept=".csv,.xlsx,.xls">
-                
-                @error('importFile') 
-                    <script>
-                        window.addEventListener('DOMContentLoaded', () => {
-                            Livewire.dispatch('notify', [{icon: 'error', title: 'Error de archivo', text: '{{ $message }}'}]);
-                        });
-                    </script>
-                @enderror
-
-                <div wire:loading wire:target="importFile" class="spinner-border spinner-border-sm text-success me-2" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-
                 <button wire:click="create" class="btn btn-primary shadow-sm">
                     <i class="ph ph-plus-circle me-1"></i> <span class="d-none d-lg-inline">Nuevo Empleado</span><span class="d-lg-none">Nuevo</span>
                 </button>

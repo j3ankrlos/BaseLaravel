@@ -206,15 +206,7 @@
                                             <div class="col-md-2">
                                                 <label class="form-label fw-bold small">6. Alimento</label>
                                                 @php
-                                                    $barnId = $i_barn_id;
-                                                    $locationName = null;
-                                                    if ($barnId) {
-                                                        $b = collect($barns)->firstWhere('id', $barnId);
-                                                        $locationName = $b?->name;
-                                                    }
-                                                    if ($ingresoType == 'RECRIA') {
-                                                        $locationName = 'RECRIA';
-                                                    }
+                                                    $locationName = $ingresoType == 'RECRIA' ? 'RECRIA' : (isset($i_nave_id) ? collect($barns)->firstWhere('id', $i_nave_id)?->name : null);
                                                     $availableFeeds = $this->getAvailableFeedTypes($locationName);
                                                 @endphp
                                                 <select wire:model="i_feed_type" class="form-select border-primary border-opacity-25 bg-primary bg-opacity-10 fw-bold text-primary shadow-none" @if(count($availableFeeds) <= 1) disabled @endif>
@@ -431,7 +423,7 @@
                                                         default => []
                                                     };
                                                     $filteredBarns = collect($barns)->whereIn('name', $allowedBarnNames);
-                                                    $currentBarn = $filteredBarns->firstWhere('id', $i_barn_id);
+                                                    $currentBarn = $filteredBarns->firstWhere('id', $i_nave_id);
                                                 @endphp
 
                                                 @if($filteredBarns->count() == 1 && $currentBarn)
@@ -442,7 +434,7 @@
                                                         </span>
                                                     </div>
                                                 @else
-                                                    <select wire:model.live="i_barn_id" class="form-select border-light-subtle">
+                                                    <select wire:model.live="i_nave_id" class="form-select border-light-subtle">
                                                         <option value="">Seleccione Nave...</option>
                                                         @foreach($filteredBarns as $b)
                                                             <option value="{{ $b->id }}">{{ $b->name }}</option>
@@ -453,7 +445,6 @@
                                             <div class="col-md-4">
                                                 <label class="form-label fw-bold small">Sección</label>
                                                 @php 
-                                                    $currentSection = collect($barnSections)->firstWhere('id', $i_barn_section_id);
                                                     $isLevanteNave = $currentBarn && in_array($currentBarn->name, ['LA', 'LB', 'LE']);
                                                 @endphp
 
@@ -465,11 +456,11 @@
                                                         </span>
                                                     </div>
                                                 @elseif($ingresoType == 'RECRIA' && count($recriaAvailableSections) > 0)
-                                                    <select wire:model.live="i_barn_section_id" class="form-select border-light-subtle">
+                                                    <select wire:model.live="i_seccion_id" class="form-select border-light-subtle">
                                                         <option value="">Seleccione Sección...</option>
                                                         @foreach($recriaAvailableSections as $rs)
-                                                            @if(!$rs['is_full'])
-                                                                <option value="{{ $rs['id'] }}" {{ $i_barn_section_id == $rs['id'] ? 'selected' : '' }}>
+                                                            @if($rs['available'])
+                                                                <option value="{{ $rs['id'] }}">
                                                                     {{ $rs['name'] }}
                                                                     @if($rs['is_proc']) ← EN PROCESO @endif
                                                                 </option>
@@ -477,24 +468,19 @@
                                                         @endforeach
                                                     </select>
                                                 @else
-                                                    <select wire:model.live="i_barn_section_id" class="form-select border-light-subtle" @if(!$i_barn_id) disabled @endif>
+                                                    <select wire:model.live="i_seccion_id" class="form-select border-light-subtle" @if(!$i_nave_id) disabled @endif>
                                                         <option value="">Seleccione Sección...</option>
-                                                        @foreach($barnSections->where('barn_id', $i_barn_id) as $bs)
+                                                        @foreach($barnSections->where('barn_id', $i_nave_id) as $bs)
                                                             <option value="{{ $bs->id }}">{{ $bs->name }}</option>
                                                         @endforeach
                                                     </select>
                                                 @endif
-                                                @error('i_barn_section_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                @error('i_seccion_id') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label fw-bold small">Corral (Manual o Lista)</label>
-                                                <input list="i_pens_list" wire:model.live="i_pen_name" class="form-control border-light-subtle" placeholder="Escriba o elija..." @if(!$i_barn_section_id) disabled @endif>
-                                                <datalist id="i_pens_list">
-                                                    @foreach($pens->where('barn_section_id', $i_barn_section_id) as $p)
-                                                        <option value="{{ $p->name }}">Capacidad: {{ $p->capacity ?? '?' }}</option>
-                                                    @endforeach
-                                                </datalist>
-                                                @error('i_pen_name') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                <label class="form-label fw-bold small">Corral (Número)</label>
+                                                <input type="number" wire:model.live="i_corral" class="form-control border-light-subtle" placeholder="Ej. 1, 2, 3..." @if(!$i_seccion_id) disabled @endif>
+                                                @error('i_corral') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                         </div>
                                     </div>
@@ -570,7 +556,7 @@
                                         <option value="">Seleccione de Inventario Activo...</option>
                                         @foreach($activeInventory as $item)
                                             <option value="{{ $item->id }}">
-                                                [{{ $item->stage->name }}] {{ $item->identifier ?? $item->management_lot }} | Cant: {{ $item->quantity }} | Ubic: {{ $item->barnSection->barn->name }} - {{ $item->pen->name ?? $item->barnSection->name }}
+                                                [{{ $item->stage->name }}] {{ $item->internal_id ?? $item->management_lot }} | Cant: {{ $item->quantity }} | Ubic: {{ $item->nave->name ?? 'N/A' }} - @if($item->seccion) {{ $item->seccion->name }} @endif @if($item->corral) (C-{{ $item->corral }}) @endif
                                             </option>
                                         @endforeach
                                     </select>
@@ -590,7 +576,7 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label fw-bold small">Nave (Galpón)</label>
-                                                <select wire:model.live="m_barn_id" class="form-select border-primary border-opacity-25">
+                                                <select wire:model.live="m_nave_id" class="form-select border-primary border-opacity-25">
                                                     <option value="">Seleccione Nave...</option>
                                                     @foreach($barns as $b)
                                                         <option value="{{ $b->id }}">{{ $b->name }}</option>
@@ -599,22 +585,18 @@
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label fw-bold small">Sección</label>
-                                                <select wire:model.live="m_barn_section_id" class="form-select border-primary border-opacity-25" @if(!$m_barn_id) disabled @endif>
+                                                <select wire:model.live="m_seccion_id" class="form-select border-primary border-opacity-25" @if(!$m_nave_id) disabled @endif>
                                                     <option value="">Seleccione Sección...</option>
-                                                    @foreach($barnSections->where('barn_id', $m_barn_id) as $bs)
+                                                    @foreach($barnSections->where('barn_id', $m_nave_id) as $bs)
                                                         <option value="{{ $bs->id }}">{{ $bs->name }}</option>
                                                     @endforeach
                                                 </select>
-                                                @error('m_barn_section_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                                                @error('m_seccion_id') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label fw-bold small">Corral (Manual o Lista)</label>
-                                                <input list="m_pens_list" wire:model.live="m_pen_name" class="form-control border-primary border-opacity-25" placeholder="Escriba o elija..." @if(!$m_barn_section_id) disabled @endif>
-                                                <datalist id="m_pens_list">
-                                                    @foreach($pens->where('barn_section_id', $m_barn_section_id) as $p)
-                                                        <option value="{{ $p->name }}">Capacidad: {{ $p->capacity ?? '?' }}</option>
-                                                    @endforeach
-                                                </datalist>
+                                                <label class="form-label fw-bold small">Corral (Número)</label>
+                                                <input type="number" wire:model.live="m_corral" class="form-control border-primary border-opacity-25" placeholder="Ej. 1, 2, 3..." @if(!$m_seccion_id) disabled @endif>
+                                                @error('m_corral') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                         </div>
                                     </div>
@@ -642,7 +624,7 @@
                                     <select wire:model="c_animal_id" class="form-select shadow-none">
                                         <option value="">Seleccione Hembra...</option>
                                         @foreach($activeInventory->where('type', 'INDIVIDUO')->where('sex', 'Hembra') as $item)
-                                            <option value="{{ $item->id }}">{{ $item->identifier }} ({{ $item->stage->name }})</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->identifier }} ({{ $item->stage->name }})</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -674,7 +656,7 @@
                                     <select wire:model="act_animal_id" class="form-select form-select-lg">
                                         <option value="">Seleccione Hembra...</option>
                                         @foreach($activeInventory->where('type', 'INDIVIDUO')->where('sex', 'Hembra')->whereIn('stage.name', ['Pubertad', 'Monta']) as $item)
-                                            <option value="{{ $item->id }}">{{ $item->identifier }} - Ubic: {{ $item->barnSection->name }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->identifier }} - Ubic: {{ $item->seccion->name ?? $item->nave->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -703,7 +685,7 @@
                                     <select wire:model="v_animal_id" class="form-select">
                                         <option value="">Seleccione...</option>
                                         @foreach($activeInventory as $item)
-                                            <option value="{{ $item->id }}">{{ $item->identifier ?? $item->management_lot }} | Cant: {{ $item->quantity }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->management_lot }} | Cant: {{ $item->quantity }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -740,7 +722,7 @@
                                     <select wire:model="d_animal_id" class="form-select">
                                         <option value="">Seleccione...</option>
                                         @foreach($activeInventory as $item)
-                                            <option value="{{ $item->id }}">{{ $item->identifier ?? $item->management_lot }} | Vivos: {{ $item->quantity }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->management_lot }} | Vivos: {{ $item->quantity }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -785,7 +767,7 @@
                                     <select wire:model="p_animal_id" class="form-select form-select-lg">
                                         <option value="">Seleccione Macho...</option>
                                         @foreach($activeInventory->where('sex', 'Macho')->where('stage.name', 'Pubertad') as $item)
-                                            <option value="{{ $item->id }}">{{ $item->identifier ?? $item->management_lot }} - Ubic: {{ $item->barnSection->name }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->management_lot }} - Ubic: {{ $item->seccion->name ?? $item->nave->name }}</option>
                                         @endforeach
                                     </select>
                                     @error('p_animal_id') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -870,5 +852,6 @@
             background-color: #f8f9fa;
         }
         .letter-spacing-1 { letter-spacing: 1px; }
+        .cursor-pointer { cursor: pointer; }
     </style>
 </div>

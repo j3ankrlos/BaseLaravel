@@ -35,7 +35,7 @@
                 <!-- Barn Filter -->
                 <div class="col-md-2">
                     <label class="form-label smallest fw-bold text-uppercase text-muted">Filtrar por Nave</label>
-                    <select wire:model.live="f_barn_id" class="form-select border-primary border-opacity-10 shadow-none fw-medium">
+                    <select wire:model.live="f_nave_id" class="form-select border-primary border-opacity-10 shadow-none fw-medium">
                         <option value="">Todas las Naves</option>
                         @foreach($barns as $id => $name)
                             <option value="{{ $id }}">{{ $name }}</option>
@@ -103,8 +103,9 @@
                         <th class="border-0 py-3 text-center">ACT. CURSO</th>
                         <th class="border-0 py-3 text-center">ORDEN</th>
                         <th class="border-0 py-3 text-center">PESO</th>
-                        <th class="border-0 py-3">AREA</th>
-                        <th class="border-0 py-3">SALA</th>
+                        <th class="border-0 py-3">NAVE</th>
+                        <th class="border-0 py-3">SECCIÓN</th>
+                        <th class="border-0 py-3">CORRAL</th>
                         <th class="border-0 py-3 text-center">GRANJA</th>
                         <th class="border-0 py-3">ALIMENTO</th>
                     </tr>
@@ -120,7 +121,7 @@
                                     $lotNum = is_numeric($animal->management_lot) ? (int)$animal->management_lot : 0;
                                     $calculatedAge = 0;
                                     if ($lotNum > 0) {
-                                        $calculatedAge = $currentPic - $lotNum;
+                                        $calculatedAge = (int)$currentPic - $lotNum;
                                         if ($calculatedAge < 0) $calculatedAge += 1000;
                                     }
                                 @endphp
@@ -134,8 +135,9 @@
                             <td class="text-center inventory-data">{{ $animal->activo_excel ?? '---' }}</td>
                             <td class="text-center inventory-data">{{ $animal->order_number ?? '---' }}</td>
                             <td class="text-center inventory-data fw-bold">{{ number_format($animal->weight, 2, ',', '.') }}</td>
-                            <td class="inventory-data">{{ $animal->barn?->name ?? '---' }}</td>
-                            <td class="inventory-data">{{ $animal->barnSection?->name ?? '---' }}</td>
+                            <td class="inventory-data text-uppercase">{{ $animal->nave?->name ?? '---' }}</td>
+                            <td class="inventory-data text-uppercase">{{ $animal->seccion?->name ?? '---' }}</td>
+                            <td class="inventory-data text-center fw-bold">{{ $animal->corral ?? '---' }}</td>
                             <td class="text-center inventory-data"><span class="badge bg-light text-dark border">{{ $animal->farm ?? 'EXP' }}</span></td>
                             <td class="inventory-data text-uppercase fw-bold text-primary" style="font-size: 0.8rem;">
                                 {{ $animal->feed_type ?? '---' }}
@@ -143,7 +145,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="16" class="text-center py-5">
+                            <td colspan="17" class="text-center py-5">
                                 <div class="py-4">
                                     <i class="ph ph-file-search display-1 text-light"></i>
                                     <h5 class="text-muted mt-3">No se encontraron animales activos</h5>

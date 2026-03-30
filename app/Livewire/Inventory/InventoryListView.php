@@ -15,7 +15,7 @@ class InventoryListView extends Component
     protected $paginationTheme = 'bootstrap';
 
     public $search = '';
-    public $f_barn_id = '';
+    public $f_nave_id = '';
     public $f_genetic_id = '';
     public $f_feed_type = '';
     public $perPage = 15;
@@ -25,7 +25,7 @@ class InventoryListView extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'f_barn_id' => ['except' => ''],
+        'f_nave_id' => ['except' => ''],
         'f_genetic_id' => ['except' => ''],
         'f_feed_type' => ['except' => ''],
     ];
@@ -35,7 +35,7 @@ class InventoryListView extends Component
         $this->resetPage();
     }
 
-    public function updatedFBarnId()
+    public function updatedFNaveId()
     {
         $this->resetPage();
     }
@@ -52,7 +52,7 @@ class InventoryListView extends Component
 
     public function clearFilters()
     {
-        $this->reset(['search', 'f_barn_id', 'f_genetic_id', 'f_feed_type']);
+        $this->reset(['search', 'f_nave_id', 'f_genetic_id', 'f_feed_type']);
         $this->resetPage();
     }
 
@@ -81,15 +81,15 @@ class InventoryListView extends Component
                 internal_id,
                 genetic_id,
                 sex,
-                barn_id,
-                barn_section_id,
-                pen_id,
+                nave_id,
+                seccion_id,
+                corral,
                 stage_id,
                 SUM(weight * quantity) / SUM(quantity) as weight,
                 MAX(age_days) as age_days,
                 MAX(feed_type) as feed_type
             ')
-            ->with(['genetic', 'barn', 'barnSection', 'pen', 'stage'])
+            ->with(['genetic', 'nave', 'seccion', 'stage'])
             ->where('status', 'Activo')
             ->when($this->search, function ($q) {
                 $q->where(function ($sq) {
@@ -99,7 +99,7 @@ class InventoryListView extends Component
                        ->orWhere('source', 'like', '%' . $this->search . '%');
                 });
             })
-            ->when($this->f_barn_id, fn($q) => $q->where('barn_id', $this->f_barn_id))
+            ->when($this->f_nave_id, fn($q) => $q->where('nave_id', $this->f_nave_id))
             ->when($this->f_genetic_id, fn($q) => $q->where('genetic_id', $this->f_genetic_id))
             ->when($this->f_feed_type, fn($q) => $q->where('feed_type', $this->f_feed_type))
             ->groupBy([
@@ -107,9 +107,9 @@ class InventoryListView extends Component
                 'internal_id',
                 'genetic_id',
                 'sex',
-                'barn_id',
-                'barn_section_id',
-                'pen_id',
+                'nave_id',
+                'seccion_id',
+                'corral',
                 'stage_id'
             ])
             ->orderBy($this->sortBy, $this->sortDir);

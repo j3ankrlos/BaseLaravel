@@ -338,6 +338,19 @@
                             <span class="nav-text">Trazabilidad</span>
                         </a>
                     </li>
+
+                    @role('Super Admin')
+                    <li class="nav-separator">
+                        <div class="nav-separator-text">Configuración de Sistema</div>
+                        <div class="nav-separator-line"></div>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('system.migration') }}" class="nav-link {{ request()->routeIs('system.migration') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-database-backup"></i>
+                            <span class="nav-text">Migración de Datos</span>
+                        </a>
+                    </li>
+                    @endrole
                 </ul>
             </div>
         </nav>

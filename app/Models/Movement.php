@@ -7,12 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 class Movement extends Model
 {
     protected $fillable = [
-        'animal_id', 'movement_date', 'pic_cycle', 'pic_day',
-        'movement_type', 'quantity', 'weight',
-        'from_barn_section_id', 'from_pen_id',
-        'to_barn_section_id', 'to_pen_id',
+        'animal_id', 
+        'movement_date',
+        'movement_type', 
+        'quantity', 
+        'weight',
+        'from_nave_id', 'to_nave_id',
+        'from_seccion_id', 'to_seccion_id', 
+        'from_corral', 'to_corral',
         'from_stage_id', 'to_stage_id',
-        'reference_id', 'user_id', 'note', 'death_cause_id',
+        'reference_id', 
+        'user_id', 
+        'note', 
+        'death_cause_id',
     ];
 
     protected $casts = [
@@ -30,14 +37,24 @@ class Movement extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function fromBarnSection()
+    public function fromNave()
     {
-        return $this->belongsTo(BarnSection::class, 'from_barn_section_id');
+        return $this->belongsTo(Barn::class, 'from_nave_id');
     }
 
-    public function toBarnSection()
+    public function toNave()
     {
-        return $this->belongsTo(BarnSection::class, 'to_barn_section_id');
+        return $this->belongsTo(Barn::class, 'to_nave_id');
+    }
+
+    public function fromSeccion()
+    {
+        return $this->belongsTo(BarnSection::class, 'from_seccion_id');
+    }
+
+    public function toSeccion()
+    {
+        return $this->belongsTo(BarnSection::class, 'to_seccion_id');
     }
 
     public function fromStage()

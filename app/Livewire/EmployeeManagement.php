@@ -47,7 +47,6 @@ class EmployeeManagement extends Component
 
     public $activeTab = 'personal'; 
     public $isModalOpen = false;
-    public $importFile;
 
     public function mount()
     {
@@ -325,142 +324,10 @@ class EmployeeManagement extends Component
             'employeeId', 'first_names', 'last_names', 'national_id', 'phone_fixed', 
             'phone_mobile', 'state_id', 'municipality_id', 'parish_id', 'city', 'address',
             'entry_date', 'file_number', 'cost_center_code', 'area_id', 'assigned_post_id', 'unit_id', 
-            'position_id', 'shift_id', 'payroll_type_id', 'status', 'estatus', 'estadonomina', 'medical_college_code', 'ministry_code', 'registration_status', 'vet_initials', 'showVetSection', 'importFile'
+            'position_id', 'shift_id', 'payroll_type_id', 'status', 'estatus', 'estadonomina', 'medical_college_code', 'ministry_code', 'registration_status', 'vet_initials', 'showVetSection'
         ]);
         $this->status = 'Activo';
         $this->estatus = 'Fijo';
         $this->estadonomina = 'Activo';
-    }
-
-    public function updatedImportFile()
-    {
-        $this->importEmployees();
-    }
-
-    /**
-     * Importación masiva desde Excel o CSV
-     */
-    public function importEmployees()
-    {
-        try {
-            $this->validate([
-                'importFile' => 'required|max:10240|mimes:xlsx,xls,csv,txt'
-            ]);
-
-            $path = $this->importFile->getRealPath();
-            $rows = SimpleExcelReader::create($path)->getRows();
-
-            $count = 0;
-            $errors = 0;
-
-            DB::beginTransaction();
-
-            foreach ($rows as $row) {
-                $get = function($names) use ($row) {
-                    foreach ((array)$names as $name) {
-                        $cleanName = strtolower(trim($name));
-                        $cleanName = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $cleanName);
-                        
-                        // Simplificamos la búsqueda en el array de la fila
-                        foreach ($row as $key => $value) {
-                            $cleanKey = strtolower(trim($key));
-                            $cleanKey = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $cleanKey);
-                            if ($cleanKey === $cleanName && !empty($value)) {
-                                return is_string($value) ? trim($value) : $value;
-                            }
-                        }
-                    }
-                    return null;
-                };
-
-                $nationalId = (string) $get(['cedula', 'identidad', 'dni', 'id', 'DNI', 'IDENTIDAD', 'CEDULA']);
-                if (empty($nationalId)) {
-                    $errors++;
-                    continue; 
-                }
-
-                // --- MAPPING DE RELACIONES ---
-                $positionName = $get(['cargo', 'posicion', 'posicion_actual']);
-                $areaName     = $get(['area centro de costo', 'area', 'centro de costo', 'area cc', 'departamento']);
-                $postName     = $get(['area asignada', 'puesto', 'puesto asignado', 'asignacion', 'seccion']);
-                $shiftCode    = $get(['turno', 'horario', 'rotacion']);
-                $unitName     = $get(['unidadproduccion', 'unidad', 'sitio', 'finca', 'unidad_produccion']);
-                $payrollName  = $get(['nomina', 'tipo nomina', 'tipo de nomina', 'tipo_nomina']);
-
-                $position     = $positionName ? Position::whereRaw('UPPER(name) = ?', [strtoupper($positionName)])->first() : null;
-                $area         = $areaName ? Area::whereRaw('UPPER(name) = ?', [strtoupper($areaName)])->first() : null;
-                $assignedPost = $postName ? AssignedPost::whereRaw('UPPER(name) = ?', [strtoupper($postName)])->first() : null;
-                $shift        = $shiftCode ? Shift::whereRaw('UPPER(code) = ?', [strtoupper($shiftCode)])
-                                             ->orWhereRaw('UPPER(name) = ?', [strtoupper($shiftCode)])->first() : null;
-                $unit         = $unitName ? Unit::whereRaw('UPPER(name) = ?', [strtoupper($unitName)])->first() : null;
-                
-                // Mapeo de Nómina: Por ID o por Nombre
-                $payrollTypeId = $get(['fk_idtiponomina', 'nomina_id', 'payroll_type_id']);
-                $payrollType   = null;
-                if (is_numeric($payrollTypeId)) {
-                    $payrollType = PayrollType::find($payrollTypeId);
-                }
-                if (!$payrollType && $payrollName) {
-                    $payrollType = PayrollType::whereRaw('UPPER(name) = ?', [strtoupper($payrollName)])->first();
-                }
-
-                // --- FECHA ---
-                $entryDate = null;
-                $dateRaw = $get(['fechaingreso', 'fecha ingreso', 'ingreso', 'fecha_ingreso', 'fecha']);
-                if (!empty($dateRaw)) {
-                    try {
-                        $entryDate = Carbon::parse($dateRaw)->format('Y-m-d');
-                    } catch (\Exception $e) { $entryDate = null; }
-                }
-
-                // --- SEGURIDAD EN IDs GEOGRÁFICOS ---
-                $stateId = $get(['fk_idestador', 'estado_id']);
-                $munId   = $get(['fk_idmunicipior', 'municipio_id']);
-                $parId   = $get(['fk_idparroquiar', 'parroquia_id']);
-
-                Employee::updateOrCreate(
-                    ['national_id' => $nationalId],
-                    [
-                        'first_names'      => $get(['nombres', 'primer nombre', 'nombre']) ?? 'S/N',
-                        'last_names'       => $get(['apellidos', 'segundo nombre', 'apellido']) ?? 'S/N',
-                        'phone_mobile'     => $get(['telefono', 'celular', 'telefono movil', 'movil']),
-                        'phone_fixed'      => $get(['telefono fijo', 'fijo', 'casa']),
-                        'state_id'         => is_numeric($stateId) && State::find($stateId) ? $stateId : null,
-                        'municipality_id'  => is_numeric($munId) && Municipality::find($munId) ? $munId : null,
-                        'parish_id'        => is_numeric($parId) && Parish::find($parId) ? $parId : null,
-                        'city'             => $get(['ciudad', 'localidad']),
-                        'address'          => $get(['direccion', 'domicilio', 'direccion_exacta']),
-                        'entry_date'       => $entryDate,
-                        'file_number'      => $get(['numeroficha', 'ficha', 'num ficha', 'expediente', 'id_ficha']),
-                        'payroll_type_id'  => $payrollType?->id,
-                        'position_id'      => $position?->id,
-                        'area_id'          => $area?->id,
-                        'cost_center_code' => $get(['centrocosto', 'codigo centro costo', 'centro_costo']) ?? $area?->cost_center,
-                        'assigned_post_id' => $assignedPost?->id,
-                        'shift_id'         => $shift?->id,
-                        'unit_id'          => $unit?->id,
-                        'estatus'          => $get(['estatus', 'tipo contrato', 'condicion']) ?? 'Fijo',
-                        'estadonomina'     => $get(['estadonomina', 'estado nomina', 'estado', 'nomina']) ?? 'Activo',
-                        'status'           => $get(['estadonomina', 'estado nomina', 'estado', 'nomina']) ?? 'Activo',
-                        'current_status'   => $get(['estatusactual', 'estatus actual', 'incidencia']) ?: null,
-                    ]
-                );
-                $count++;
-            }
-
-            DB::commit();
-            
-            $this->reset('importFile');
-            $this->dispatch('notify', [
-                'icon' => $errors > 0 ? 'warning' : 'success', 
-                'title' => "Carga completa: $count procesados",
-                'text' => $errors > 0 ? "Se omitieron $errors filas sin identificación." : "Importación exitosa."
-            ]);
-
-        } catch (\Exception $e) {
-            if (DB::transactionLevel() > 0) DB::rollBack();
-            Log::error("Error importando empleados: " . $e->getMessage());
-            $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error de carga', 'text' => "Verifique el formato: " . $e->getMessage()]);
-        }
     }
 }
