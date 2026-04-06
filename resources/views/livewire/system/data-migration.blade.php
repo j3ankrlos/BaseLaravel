@@ -108,7 +108,7 @@
                     <p class="text-muted small mb-4">
                         Carga masiva de animales con genealogía (Padre/Madre), consanguinidad y vinculación automática por internal_id.
                     </p>
-
+ 
                     <div class="upload-zone p-4 border-2 border-dashed rounded-3 text-center mb-4 {{ $animalFile ? 'border-warning bg-light' : 'border-secondary' }}" 
                          onclick="document.getElementById('animalFile').click()" style="cursor: pointer;">
                         <i class="ph {{ $animalFile ? 'ph-check-circle text-warning' : 'ph-cloud-arrow-up text-muted' }} fs-1 mb-2"></i>
@@ -117,7 +117,7 @@
                         </p>
                         <input type="file" id="animalFile" wire:model="animalFile" class="d-none" accept=".xlsx,.xls,.csv">
                     </div>
-
+ 
                     <div class="d-grid">
                         <button wire:click="importAnimals" class="btn btn-warning py-2 fw-bold text-dark" 
                                 wire:loading.attr="disabled" {{ !$animalFile ? 'disabled' : '' }}>
@@ -129,9 +129,55 @@
                             </span>
                         </button>
                     </div>
-
+ 
                     <div class="mt-3 text-center">
                         <small class="text-muted"><i class="ph ph-info me-1"></i> Requiere: I-D, F. INICIO, PADRE, MADRE.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Historial de Importaciones (Danish) -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0 transition-hover">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-info-subtle p-3 rounded-3 me-3">
+                            <i class="ph ph-files fs-2 text-info"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1 fw-bold">Historial de Importación</h4>
+                            <span class="badge bg-info">Tabla: quarantine_items</span>
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted small mb-4">
+                        Cargue el historial de importaciones para registro de trazabilidad y pedigrí de 14 ancestros (Solo histórico).
+                    </p>
+ 
+                    <div class="upload-zone p-4 border-2 border-dashed rounded-3 text-center mb-4 {{ $importationFile ? 'border-info bg-light' : 'border-secondary' }}" 
+                         onclick="document.getElementById('importationFile').click()" style="cursor: pointer;">
+                        <i class="ph {{ $importationFile ? 'ph-check-circle text-info' : 'ph-cloud-arrow-up text-muted' }} fs-1 mb-2"></i>
+                        <p class="mb-0 {{ $importationFile ? 'fw-bold text-info text-truncate' : 'text-muted' }}">
+                            {{ $importationFile ? $importationFile->getClientOriginalName() : 'Seleccionar Historial' }}
+                        </p>
+                        <input type="file" id="importationFile" wire:model="importationFile" class="d-none" accept=".xlsx,.xls,.csv">
+                    </div>
+ 
+                    <div class="d-grid">
+                        <button wire:click="importImportations" class="btn btn-info py-2 fw-bold text-white" 
+                                wire:loading.attr="disabled" {{ !$importationFile ? 'disabled' : '' }}>
+                            <span wire:loading.remove wire:target="importImportations">
+                                <i class="ph ph-upload-simple me-2"></i> Cargar Historial
+                            </span>
+                            <span wire:loading wire:target="importImportations">
+                                <i class="ph ph-spinner ph-spin me-2"></i> Procesando...
+                            </span>
+                        </button>
+                    </div>
+ 
+                    <div class="mt-3 text-center">
+                        <small class="text-muted"><i class="ph ph-info me-1"></i> Registra 3 generaciones de pedigrí.</small>
                     </div>
                 </div>
             </div>
@@ -150,5 +196,6 @@
         .bg-primary-subtle { background-color: #e0f2fe; }
         .bg-success-subtle { background-color: #dcfce7; }
         .bg-warning-subtle { background-color: #fef3c7; }
+        .bg-info-subtle { background-color: #e0faff; }
     </style>
 </div>

@@ -11,14 +11,18 @@ Route::get('/', function () {
     return Auth::check() ? redirect('/dashboard') : redirect('/login');
 });
 
-// Autenticación (Invitados)
-Route::middleware(['guest'])->group(function () {
-    Route::get('/login', Login::class)->name('login');
-});
+// Ruta de Login (requerida por el middleware 'auth')
+Route::get('/login', Login::class)->name('login');
+
+use App\Livewire\Quarantine\QuarantineManagement;
+use App\Livewire\Quarantine\QuarantineSegregation;
 
 // Rutas protegidas (Usuario Logueado)
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
+    Route::get('/quarantine', QuarantineManagement::class)->name('quarantine.index');
+    Route::get('/quarantine/incorporation', \App\Livewire\Quarantine\QuarantineIncorporation::class)->name('quarantine.incorporation');
+    Route::get('/quarantine/{batch}/segregation', QuarantineSegregation::class)->name('quarantine.segregation');
     Route::get('/users', UserManagement::class)->name('users');
     Route::get('/roles', \App\Livewire\RoleManagement::class)->name('roles');
     Route::get('/permissions', \App\Livewire\PermissionManagement::class)->name('permissions');
@@ -38,7 +42,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/genetic-selection/list', \App\Livewire\GeneticSelection\BirthManagement::class)->name('genetics.births.index');
     Route::get('/genetic-selection/pedigree/{id}', \App\Livewire\GeneticSelection\BirthPedigree::class)->name('genetics.births.pedigree');
     Route::get('/genetic-selection/pedigree-preview/{room}', \App\Livewire\GeneticSelection\PedigreePreview::class)->name('genetics.births.pedigree-preview');
-    Route::get('/genetic-selection/import', \App\Livewire\GeneticSelection\BirthImport::class)->name('genetics.births.import');
     Route::get('/genetic-selection/edit/{id}', \App\Livewire\GeneticSelection\BirthEdit::class)->name('genetics.births.edit');
 
     // Recría
@@ -50,6 +53,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/inventory/traceability', \App\Livewire\Inventory\TraceabilityViewer::class)->name('inventory.traceability');
 
     Route::get('/system/data-migration', \App\Livewire\System\DataMigration::class)->name('system.migration');
+    Route::get('/system/feeds', \App\Livewire\System\FeedManagement::class)->name('system.feeds');
 
     Route::post('/logout', function () {
         Auth::logout();

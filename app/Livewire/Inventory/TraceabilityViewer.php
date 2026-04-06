@@ -60,10 +60,12 @@ class TraceabilityViewer extends Component
         $combined = collect();
 
         if (!empty($this->search)) {
-            $animalsQuery = Animal::with(['stage', 'nave', 'seccion', 'genetic'])
+            $animalsQuery = Animal::with(['stage', 'nave', 'seccion', 'genetic', 'detail'])
                 ->where('internal_id', 'like', '%' . $this->search . '%')
-                ->orWhere('management_lot', 'like', '%' . $this->search . '%')
-                ->orWhere('lote_sap', 'like', '%' . $this->search . '%')
+                ->orWhereHas('detail', function ($q) {
+                    $q->where('management_lot', 'like', '%' . $this->search . '%')
+                      ->orWhere('lote_sap', 'like', '%' . $this->search . '%');
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
             
@@ -99,6 +101,15 @@ class TraceabilityViewer extends Component
                 $fake->setRelation('nave', $fakeNave);
                 $fake->setRelation('seccion', $fakeSeccion);
                 $fake->corral = $b->birth->cage;
+
+                // Fake Detail for the split structure
+                $fakeDetail = new \App\Models\AnimalDetail([
+                    'management_lot' => $b->birth->maternity_lot ?? 'No asig.',
+                    'source' => 'MATERNIDAD',
+                    'weight' => $b->weight,
+                    'lote_sap' => 'N/A'
+                ]);
+                $fake->setRelation('detail', $fakeDetail);
 
                 $combined->push($fake);
             }
@@ -145,11 +156,20 @@ class TraceabilityViewer extends Component
                     $fake->setRelation('seccion', $fakeSeccion);
                     $fake->corral = $b->birth->cage;
 
+                    // Fake Detail for the individual selection
+                    $fakeDetail = new \App\Models\AnimalDetail([
+                        'management_lot' => $b->birth->maternity_lot ?? 'No asig.',
+                        'source' => 'MATERNIDAD',
+                        'weight' => $b->weight,
+                        'lote_sap' => 'N/A'
+                    ]);
+                    $fake->setRelation('detail', $fakeDetail);
+
                     $selectedAnimal = $fake;
                     $birthEvent = $b;
                 }
             } else {
-                $selectedAnimal = Animal::with(['stage', 'nave', 'seccion', 'genetic', 'parentAnimal'])->find($this->selected_animal_id);
+                $selectedAnimal = Animal::with(['stage', 'nave', 'seccion', 'genetic', 'detail'])->find($this->selected_animal_id);
                 if ($selectedAnimal) {
                     $movements = Movement::with(['user', 'fromNave', 'toNave', 'fromSeccion', 'toSeccion', 'fromStage', 'toStage', 'deathCause'])
                         ->where('animal_id', $this->selected_animal_id)

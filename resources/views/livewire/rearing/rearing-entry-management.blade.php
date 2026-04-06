@@ -163,7 +163,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Sexo del Grupo</label>
                                     <select wire:model="sex" class="form-select">
-                                        <option value="Mixto">Mixto</option>
+                                        <option value="">Seleccione...</option>
                                         <option value="Macho">Machos</option>
                                         <option value="Hembra">Hembras</option>
                                     </select>

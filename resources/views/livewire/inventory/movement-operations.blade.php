@@ -89,6 +89,15 @@
                                 <div class="fw-bold">Mortalidad</div>
                             </div>
                         </button>
+
+                        {{-- SECCION LABORATORIO --}}
+                        <div class="bg-light px-4 py-2 small fw-bold text-muted border-bottom text-uppercase mt-2">Laboratorio</div>
+                        <button wire:click="setTab('semen')" class="list-group-item list-group-item-action py-3 px-4 @if($activeTab == 'semen') active-op-semen @endif">
+                            <div class="d-flex align-items-center">
+                                <i class="ph ph-test-tube fs-4 me-3"></i>
+                                <div class="fw-bold">Activar Semen</div>
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -159,32 +168,32 @@
                                     @if($ingresoType == 'RECRIA')
                                         <div class="row g-2 mb-4 align-items-end">
                                             <div class="col-md-2">
-                                                <label class="form-label fw-bold small">1. Genética</label>
-                                                <select wire:model.live="i_genetic_id" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 text-uppercase fw-bold">
-                                                    <option value="">Seleccione Genética...</option>
-                                                    @foreach($genetics as $gen)
-                                                        <option value="{{ $gen->id }}">{{ $gen->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('i_genetic_id') <span class="text-danger small">{{ $message }}</span> @enderror
-                                            </div>
-                                            <div class="col-md-2">
-                                                <label class="form-label fw-bold small">2. Sala</label>
-                                                <select wire:model.live="i_selected_room" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold" @if(!$i_genetic_id) disabled @endif>
+                                                <label class="form-label fw-bold small">1. Sala</label>
+                                                <select wire:model.live="i_selected_room" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold">
                                                     <option value="">Sala...</option>
                                                     @foreach($rooms as $room)
-                                                        <option value="{{ $room }}">{{ $room }}</option>
+                                                        <option value="{{ $room }}">Sala {{ $room }}</option>
                                                     @endforeach
                                                 </select>
                                                 @error('i_selected_room') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                             <div class="col-md-2">
+                                                <label class="form-label fw-bold small">2. Genética</label>
+                                                <select wire:model.live="i_genetic_id" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 text-uppercase fw-bold" @if(!$i_selected_room) disabled @endif>
+                                                    <option value="">Raza...</option>
+                                                    @foreach($i_available_genetics as $gen)
+                                                        <option value="{{ $gen->id }}">{{ $gen->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('i_genetic_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-md-1">
                                                 <label class="form-label fw-bold small">3. Cantidad</label>
                                                 @php 
                                                     $isF1Batch = $i_genetic_id == 7;
                                                     $isReadOnly = $ingresoType == 'RECRIA' && !$isF1Batch;
                                                 @endphp
-                                                <input type="number" wire:model.live="i_quantity" class="form-control @if(!$isReadOnly) border-primary @else bg-light @endif fw-bold" placeholder="Cant." @if($isReadOnly) readonly @endif>
+                                                <input type="number" wire:model.live="i_quantity" class="form-control @if(!$isReadOnly) border-primary @else bg-light @endif fw-bold p-1 text-center" placeholder="Cant." @if($isReadOnly) readonly @endif style="min-width: 60px;">
                                                 @error('i_quantity') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                             <div class="col-md-2">
@@ -198,12 +207,12 @@
                                             <div class="col-md-2">
                                                 <label class="form-label fw-bold small">5. Lote de Manejo</label>
                                                 <div class="input-group shadow-none">
-                                                    <span class="input-group-text bg-light border-primary border-opacity-25 px-2"><i class="ph ph-tag"></i></span>
-                                                    <input type="text" wire:model.live="i_management_lot" class="form-control border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold" placeholder="PROC">
+                                                    <span class="input-group-text bg-light border-primary border-opacity-25 px-1"><i class="ph ph-tag"></i></span>
+                                                    <input type="text" wire:model.live="i_management_lot" class="form-control border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold px-1" placeholder="PROC">
                                                 </div>
                                                 @error('i_management_lot') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-3">
                                                 <label class="form-label fw-bold small">6. Alimento</label>
                                                 @php
                                                     $locationName = $ingresoType == 'RECRIA' ? 'RECRIA' : (isset($i_nave_id) ? collect($barns)->firstWhere('id', $i_nave_id)?->name : null);
@@ -286,22 +295,12 @@
                                                 </div>
                                             @endif
                                         @endif
-                                    @else
+                                    @elseif($ingresoType == 'LEVANTE')
                                         {{-- ── LEVANTE: misma metodología que RECRIA ── --}}
                                         <div class="row g-2 mb-4 align-items-end">
                                             <div class="col-md-2">
-                                                <label class="form-label fw-bold small">1. Genética</label>
-                                                <select wire:model.live="l_genetic_id" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 text-uppercase fw-bold">
-                                                    <option value="">Seleccione Genética...</option>
-                                                    @foreach($genetics as $gen)
-                                                        <option value="{{ $gen->id }}">{{ $gen->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('l_genetic_id') <span class="text-danger small">{{ $message }}</span> @enderror
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label fw-bold small">2. Lote</label>
-                                                <select wire:model.live="l_selected_lot" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold" @if(!$l_genetic_id) disabled @endif>
+                                                <label class="form-label fw-bold small">1. Lote</label>
+                                                <select wire:model.live="l_selected_lot" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold">
                                                     <option value="">Lote...</option>
                                                     @foreach($l_lots as $lotInfo)
                                                         <option value="{{ $lotInfo['lot'] }}">{{ $lotInfo['lot'] }} ({{ $lotInfo['total'] }})</option>
@@ -310,12 +309,22 @@
                                                 @error('l_selected_lot') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                             <div class="col-md-2">
+                                                <label class="form-label fw-bold small">2. Genética</label>
+                                                <select wire:model.live="l_genetic_id" class="form-select shadow-none border-primary border-opacity-25 bg-light bg-opacity-50 text-uppercase fw-bold" @if(!$l_selected_lot) disabled @endif>
+                                                    <option value="">Raza...</option>
+                                                    @foreach($l_available_genetics as $gen)
+                                                        <option value="{{ $gen->id }}">{{ $gen->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @error('l_genetic_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
+                                            <div class="col-md-1">
                                                 <label class="form-label fw-bold small">3. Cantidad</label>
                                                 @php $isLevanteF1 = ($l_genetic_id ?? null) == 7; @endphp
                                                 <input type="number" wire:model.live="i_quantity"
-                                                    class="form-control @if(!$isLevanteF1) bg-light @else border-primary @endif fw-bold"
+                                                    class="form-control @if(!$isLevanteF1) bg-light @else border-primary @endif fw-bold p-1 text-center"
                                                     placeholder="Cant."
-                                                    @if(!$isLevanteF1) readonly @endif>
+                                                    @if(!$isLevanteF1) readonly @endif style="min-width: 60px;">
                                                 @error('i_quantity') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
                                             <div class="col-md-2">
@@ -326,8 +335,16 @@
                                                     placeholder="0,00">
                                                 @error('i_weight') <span class="text-danger small">{{ $message }}</span> @enderror
                                             </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label fw-bold small">5. Lote de Manejo</label>
+                                                <div class="input-group shadow-none">
+                                                    <span class="input-group-text bg-light border-primary border-opacity-25 px-1"><i class="ph ph-tag"></i></span>
+                                                    <input type="text" wire:model.live="i_management_lot" class="form-control border-primary border-opacity-25 bg-light bg-opacity-50 fw-bold px-1" placeholder="PROC">
+                                                </div>
+                                                @error('i_management_lot') <span class="text-danger small">{{ $message }}</span> @enderror
+                                            </div>
                                             <div class="col-md-3">
-                                                <label class="form-label fw-bold small">5. Alimento</label>
+                                                <label class="form-label fw-bold small">6. Alimento</label>
                                                 @php
                                                     $levanteFeeds = $this->getAvailableFeedTypes('LA');
                                                 @endphp
@@ -376,7 +393,7 @@
                                                                     </td>
                                                                     <td class="small-id"><code class="text-dark">{{ $animal['internal_id'] ?? $animal['identifier'] ?? 'N/A' }}</code></td>
                                                                     <td>{{ $animal['genetic']['name'] ?? '-' }}</td>
-                                                                    <td><span class="badge bg-secondary opacity-75">{{ $animal['management_lot'] }}</span></td>
+                                                                    <td><span class="badge bg-secondary opacity-75">{{ $animal['detail']['management_lot'] ?? '' }}</span></td>
                                                                     <td class="text-center fw-bold">{{ $animal['quantity'] }}</td>
                                                                     <td><span class="badge bg-warning text-dark">RECRÍA</span></td>
                                                                     <td>
@@ -403,7 +420,7 @@
                                                 </div>
                                             @endif
                                         @endif
-                                    @endif
+                                        @endif
                                 </div>
 
                                 <!-- DESTINATION LOGISTICS -->
@@ -556,7 +573,7 @@
                                         <option value="">Seleccione de Inventario Activo...</option>
                                         @foreach($activeInventory as $item)
                                             <option value="{{ $item->id }}">
-                                                [{{ $item->stage->name }}] {{ $item->internal_id ?? $item->management_lot }} | Cant: {{ $item->quantity }} | Ubic: {{ $item->nave->name ?? 'N/A' }} - @if($item->seccion) {{ $item->seccion->name }} @endif @if($item->corral) (C-{{ $item->corral }}) @endif
+                                                [{{ $item->stage->name }}] {{ $item->internal_id ?? $item->detail?->management_lot }} | Cant: {{ $item->quantity }} | Ubic: {{ $item->nave->name ?? 'N/A' }} - @if($item->seccion) {{ $item->seccion->name }} @endif @if($item->corral) (C-{{ $item->corral }}) @endif
                                             </option>
                                         @endforeach
                                     </select>
@@ -685,7 +702,7 @@
                                     <select wire:model="v_animal_id" class="form-select">
                                         <option value="">Seleccione...</option>
                                         @foreach($activeInventory as $item)
-                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->management_lot }} | Cant: {{ $item->quantity }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->detail?->management_lot }} | Cant: {{ $item->quantity }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -722,7 +739,7 @@
                                     <select wire:model="d_animal_id" class="form-select">
                                         <option value="">Seleccione...</option>
                                         @foreach($activeInventory as $item)
-                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->management_lot }} | Vivos: {{ $item->quantity }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->detail?->management_lot }} | Vivos: {{ $item->quantity }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -767,7 +784,7 @@
                                     <select wire:model="p_animal_id" class="form-select form-select-lg">
                                         <option value="">Seleccione Macho...</option>
                                         @foreach($activeInventory->where('sex', 'Macho')->where('stage.name', 'Pubertad') as $item)
-                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->management_lot }} - Ubic: {{ $item->seccion->name ?? $item->nave->name }}</option>
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->detail?->management_lot }} - Ubic: {{ $item->seccion->name ?? $item->nave->name }}</option>
                                         @endforeach
                                     </select>
                                     @error('p_animal_id') <span class="text-danger small">{{ $message }}</span> @enderror
@@ -819,6 +836,47 @@
                 </div>
                 @endif
 
+                {{-- FORMULARIO: ACTIVACION SEMEN --}}
+                @if($activeTab == 'semen')
+                <div class="card shadow-sm rounded-4 border-start border-warning border-5">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+                        <h5 class="fw-bold text-dark"><i class="ph ph-test-tube me-2 text-warning fs-3"></i> Activación de Semental (Código Semen)</h5>
+                        <p class="text-muted small">Incremente la trazabilidad del macho asignándole su <strong>Código de Semen</strong> oficial tras cumplir parámetros de calidad.</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form wire:submit="processSemenActivation">
+                            <div class="row g-4">
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Seleccionar Macho (STUD)</label>
+                                    <select wire:model="s_animal_id" class="form-select form-select-lg">
+                                        <option value="">Seleccione Macho...</option>
+                                        @foreach($activeInventory->where('sex', 'Macho')->where('stage.name', 'Reproducción') as $item)
+                                            <option value="{{ $item->id }}">{{ $item->internal_id ?? $item->detail?->management_lot }} - Ubic: {{ $item->seccion->name ?? $item->nave->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('s_animal_id') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Código de Semen Asignado</label>
+                                    <input type="text" wire:model="s_semen_code" class="form-control form-control-lg fw-bold" placeholder="Ej. SEM-1002">
+                                    @error('s_semen_code') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small text-muted text-uppercase">Fecha de Activación</label>
+                                    <input type="date" wire:model="s_date" class="form-control form-control-lg">
+                                    @error('s_date') <span class="text-danger small">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                            <div class="mt-5 text-end">
+                                <button type="submit" class="btn btn-warning px-5 py-2 rounded-pill fw-bold shadow-sm">
+                                    <i class="ph ph-flask me-1"></i> Activar Semental
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                @endif
+
             </div>
         </div>
     </div>
@@ -842,6 +900,12 @@
             background: linear-gradient(90deg, rgba(220,53,69,0.1) 0%, transparent 100%) !important;
             border-left: 4px solid #dc3545 !important;
             color: #dc3545 !important;
+        }
+
+        .active-op-semen {
+            background: linear-gradient(90deg, rgba(255,193,7,0.1) 0%, transparent 100%) !important;
+            border-left: 4px solid #ffc107 !important;
+            color: #ffc107 !important;
         }
 
         .list-group-item {

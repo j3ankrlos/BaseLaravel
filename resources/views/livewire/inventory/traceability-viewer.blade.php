@@ -46,7 +46,7 @@
                                             class="w-100 text-start btn rounded-0 py-3 px-4 border-0 @if($selected_animal_id == $rowId) btn-light bg-info bg-opacity-10 border-bottom border-info border-3 @else btn-white @endif">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <div class="fw-bold text-dark">{{ $animal->internal_id ?? $animal->management_lot }}</div>
+                                                <div class="fw-bold text-dark">{{ $animal->internal_id ?? $animal->detail?->management_lot }}</div>
                                                 <div class="smallest text-muted text-uppercase mt-1">
                                                     <i class="ph ph-dna text-info me-1"></i>{{ $animal->genetic->name }}
                                                 </div>
@@ -91,7 +91,7 @@
                             </div>
                             <div class="p-3 px-4 w-100">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h4 class="fw-bolder mb-0 text-dark">{{ $selectedAnimal->internal_id ?? $selectedAnimal->management_lot }}</h4>
+                                    <h4 class="fw-bolder mb-0 text-dark">{{ $selectedAnimal->internal_id ?? $selectedAnimal->detail?->management_lot }}</h4>
                                     <span class="badge {{ $selectedAnimal->status == 'Activo' ? 'bg-success' : 'bg-danger' }} rounded-pill px-3 py-1 fw-bold fs-7 shadow-sm">
                                         <i class="ph ph-check-circle me-1"></i>{{ $selectedAnimal->status }}
                                     </span>
@@ -103,7 +103,7 @@
                                     <span class="text-black-50 opacity-25">|</span>
                                     <div><span class="text-muted">Edad:</span> <strong class="text-primary">{{ $selectedAnimal->age_days ?? 0 }} días</strong></div>
                                     <span class="text-black-50 opacity-25">|</span>
-                                    <div><span class="text-muted">SAP:</span> <strong class="text-dark">{{ $selectedAnimal->lote_sap ?? 'Sin asignar' }}</strong></div>
+                                    <div><span class="text-muted">SAP:</span> <strong class="text-dark">{{ $selectedAnimal->detail?->lote_sap ?? 'Sin asignar' }}</strong></div>
                                     <span class="text-black-50 opacity-25">|</span>
                                     <div><span class="text-muted">Ubicación Actual:</span> <strong class="text-dark"><i class="ph ph-map-pin text-info me-1"></i>{{ $selectedAnimal->nave->name ?? '' }} @if($selectedAnimal->seccion) - {{ $selectedAnimal->seccion->name }} @endif @if($selectedAnimal->corral) (C-{{ $selectedAnimal->corral }}) @endif</strong></div>
                                 </div>
@@ -139,11 +139,11 @@
                                     </tr>
                                     <tr>
                                         <td class="text-muted small py-2">Peso Ingreso:</td>
-                                        <td class="fw-bold py-2 text-info">{{ number_format($selectedAnimal->weight, 2, ',', '.') }} Kg</td>
+                                        <td class="fw-bold py-2 text-info">{{ number_format($selectedAnimal->detail?->weight ?? 0, 2, ',', '.') }} Kg</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted small py-2">Origen:</td>
-                                        <td class="fw-bold py-2">{{ $selectedAnimal->source }}</td>
+                                        <td class="fw-bold py-2">{{ $selectedAnimal->detail?->source }}</td>
                                     </tr>
                                 </table>
                             </div>
@@ -151,7 +151,7 @@
                                 <table class="table table-sm table-borderless">
                                     <tr>
                                         <td class="text-muted small py-2">Lote de Manejo:</td>
-                                        <td class="fw-bold py-2"><span class="badge bg-secondary px-3">{{ $selectedAnimal->management_lot }}</span></td>
+                                        <td class="fw-bold py-2"><span class="badge bg-secondary px-3">{{ $selectedAnimal->detail?->management_lot }}</span></td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted small py-2">ID Interno/Arete:</td>
@@ -162,14 +162,14 @@
                                         <td class="text-muted small py-2">Lote Original:</td>
                                         <td class="fw-bold py-2">
                                             <a href="javascript:void(0)" wire:click="selectAnimal({{ $selectedAnimal->parent_animal_id }})" class="text-decoration-none">
-                                                {{ $selectedAnimal->parentAnimal->management_lot ?? 'ID: '.$selectedAnimal->parent_animal_id }} <i class="ph ph-arrow-square-out smallest"></i>
+                                                {{ $selectedAnimal->parentAnimal->detail?->management_lot ?? 'ID: '.$selectedAnimal->parent_animal_id }} <i class="ph ph-arrow-square-out smallest"></i>
                                             </a>
                                         </td>
                                     </tr>
                                     @endif
                                     <tr>
                                         <td class="text-muted small py-2">Alimento Actual:</td>
-                                        <td class="fw-bold py-2">{{ $selectedAnimal->feed_type ?? 'N/A' }}</td>
+                                        <td class="fw-bold py-2">{{ $selectedAnimal->detail?->feed_type ?? 'N/A' }}</td>
                                     </tr>
                                 </table>
                             </div>

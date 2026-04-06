@@ -9,35 +9,34 @@ class Animal extends Model
     protected $fillable = [
         'quantity',
         'entry_date',
-        'source',
-        'age_days',
-        'management_lot',
         'internal_id',
         'birth_date',
         'father_id',
         'mother_id',
+        'father_tag',
+        'mother_tag',
         'genetic_id',
         'sex',
-        'lote_sap',
-        'act_curso',
-        'order_number',
-        'evento',
-        'weight',
         'nave_id',
         'seccion_id',
         'corral',
         'stage_id',
-        'feed_type',
         'status',
+        'semen_id',
+        'quarantine_batch_id',
+        'official_id',
     ];
 
     protected $casts = [
         'entry_date' => 'date',
         'birth_date' => 'date',
-        'weight'     => 'decimal:2',
     ];
 
     // Relationships
+    public function quarantineBatch()
+    {
+        return $this->belongsTo(QuarantineBatch::class);
+    }
     public function genetic()
     {
         return $this->belongsTo(Genetic::class);
@@ -81,5 +80,42 @@ class Animal extends Model
     public function birthDetails()
     {
         return $this->hasMany(BirthDetail::class);
+    }
+
+    public function detail() // Single detail record
+    {
+        return $this->hasOne(AnimalDetail::class);
+    }
+
+    public function semen()
+    {
+        return $this->belongsTo(Semen::class);
+    }
+
+    public function getAgeDaysAttribute()
+    {
+        if (!$this->birth_date) return 0;
+        return now()->diffInDays($this->birth_date);
+    }
+
+    /**
+     * Helper to create or update an ancestor record for pedigree purposes.
+     */
+    public static function ensureAncestor($tag, $geneticId, $sex, $motherId = null, $fatherId = null, $birthDate = null)
+    {
+        if (empty($tag)) return null;
+
+        return self::updateOrCreate(
+            ['internal_id' => mb_strtoupper($tag)],
+            [
+                'genetic_id' => $geneticId ?: null,
+                'sex'        => $sex,
+                'status'     => 'REFERENCIA',
+                'mother_id'  => $motherId,
+                'father_id'  => $fatherId,
+                'birth_date' => $birthDate,
+                'quantity'   => 0,
+            ]
+        );
     }
 }

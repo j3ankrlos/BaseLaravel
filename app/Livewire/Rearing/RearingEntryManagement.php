@@ -42,7 +42,7 @@ class RearingEntryManagement extends Component
             'source_room' => 'required|string',
             'management_lot' => 'nullable|string', // Lote semanal (800)
             'genetic_id' => 'required|exists:genetics,id',
-            'sex' => 'required|string|in:Macho,Hembra,Mixto',
+            'sex' => 'required|string|in:Macho,Hembra',
             'quantity' => 'required|numeric|min:1' . ($this->is_individual ? '|max:1' : ''),
             'weight' => 'nullable',
             'to_barn_section_id' => 'required|exists:barn_sections,id',

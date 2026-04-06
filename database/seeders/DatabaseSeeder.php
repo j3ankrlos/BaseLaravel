@@ -27,12 +27,14 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             AttendanceStatusSeeder::class,
             GeneticSeeder::class,
+            StageSeeder::class,
             BarnSeeder::class,
             CertificateRoleSeeder::class,
             DeathSystemAndCauseSeeder::class,
             DeathTypeAndStatusSeeder::class,
             VeterinarianSeeder::class,
             AdminUserSeeder::class,
+            FeedSeeder::class,
         ]);
     }
 }

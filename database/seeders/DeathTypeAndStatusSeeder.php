@@ -16,12 +16,10 @@ class DeathTypeAndStatusSeeder extends Seeder
         ];
 
         foreach ($deathTypes as $id => $name) {
-            DB::table('death_types')->insert([
-                'id' => $id,
-                'name' => $name,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            DB::table('death_types')->updateOrInsert(
+                ['id' => $id],
+                ['name' => $name, 'updated_at' => now(), 'created_at' => now()]
+            );
         }
 
         $animalStatuses = [
@@ -31,15 +29,15 @@ class DeathTypeAndStatusSeeder extends Seeder
             4 => 'GESTANTE',
             5 => 'LECHONA',
             6 => 'REPRODUCTOR',
+            7 => 'REFERENCIA',
+            8 => 'REEMPLAZO',
         ];
 
         foreach ($animalStatuses as $id => $name) {
-            DB::table('animal_statuses')->insert([
-                'id' => $id,
-                'name' => $name,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            DB::table('animal_statuses')->updateOrInsert(
+                ['id' => $id],
+                ['name' => $name, 'updated_at' => now(), 'created_at' => now()]
+            );
         }
     }
 }

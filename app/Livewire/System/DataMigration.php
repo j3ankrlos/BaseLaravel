@@ -36,9 +36,11 @@ class DataMigration extends Component
     public $employeeFile;
     public $birthFile;
     public $animalFile;
+    public $importationFile;
     public $isImportingEmployees = false;
     public $isImportingBirths = false;
     public $isImportingAnimals = false;
+    public $isImportingImportations = false;
 
     public function mount()
     {
@@ -343,24 +345,29 @@ class DataMigration extends Component
                         'quantity'          => (int)$get(['inv', 'cantidad']) ?: 1,
                         'entry_date'        => $fmtDate($get(['finicio', 'fechaingreso', 'entrada', 'f. inicio'])),
                         'birth_date'        => $birthDateFinal,
-                        'source'            => $get(['origen', 'procedencia']),
-                        'age_days'          => $ageDays,
-                        'management_lot'    => $lotNum, // PIC
                         'genetic_id'        => $genetic?->id,
                         'stage_id'          => $stage?->id,
                         'sex'               => $get(['sexo', 'genero']),
-                        'lote_sap'          => $get(['lotesap', 'sap', 'lote sap']),
-                        'act_curso'         => $get(['actcurso', 'actividad', 'act. curso']),
-                        'order_number'      => (int)$get(['orden']),
-                        'evento'            => $get(['evento', 'estado']) ?? 'Activa',
-                        'weight'            => (float)str_replace(',', '.', $get(['peso']) ?: 0),
                         'nave_id'           => $barn?->id,
                         'seccion_id'        => $section?->id,
                         'corral'            => (int)$get(['corral', 'jaula']),
-                        'feed_type'         => $get(['tipoalimento', 'alimento', 'tipo alimento']),
                         'status'            => $get(['estatus', 'status']) ?? 'Activo',
                         'mother_tag'        => $get(['idmadre', 'madre']) ?? '0',
                         'father_tag'        => $get(['idpadre', 'padre']) ?? '0',
+                    ]
+                );
+
+                $animal->detail()->updateOrCreate(
+                    [],
+                    [
+                        'source'            => $get(['origen', 'procedencia']),
+                        'management_lot'    => $lotNum, // PIC
+                        'lote_sap'          => $get(['lotesap', 'sap', 'lote sap']),
+                        'act_curso'         => $get(['actcurso', 'actividad', 'act. curso']),
+                        'order_number'      => (int)$get(['orden']) ?: null,
+                        'evento'            => $get(['evento', 'estado']) ?? 'Activa',
+                        'weight'            => (float)str_replace(',', '.', $get(['peso']) ?: 0),
+                        'feed_type'         => $get(['tipoalimento', 'alimento', 'tipo alimento']),
                     ]
                 );
 
@@ -405,6 +412,181 @@ class DataMigration extends Component
             $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
         }
         $this->isImportingAnimals = false;
+    }
+
+    /**
+     * IMPORTACIÓN DE HISTORIAL DE IMPORTACIONES (DANISH)
+     */
+    public function importImportations()
+    {
+        try {
+            $this->validate([
+                'importationFile' => 'required|max:20480|mimes:xlsx,xls,csv'
+            ]);
+
+            $this->isImportingImportations = true;
+            $path = $this->importationFile->getRealPath();
+            $rows = SimpleExcelReader::create($path)->getRows();
+
+            $geneticsMap = \App\Models\Genetic::all()->pluck('id', 'name')->toArray();
+            
+            $batches = []; // Grouping by Date + Origin + Provider
+            $count = 0;
+
+            DB::beginTransaction();
+
+            $rowsArray = iterator_to_array($rows);
+
+            // Formatear fechas - Definida antes de su uso
+            $fmtDate = function($val) {
+                if (empty($val)) return null;
+                try {
+                    if ($val instanceof \DateTimeInterface) return $val->format('Y-m-d');
+                    if (is_string($val) && str_contains($val, '/')) {
+                        // Soporte para d/m/Y y j/n/Y
+                        $parts = explode('/', $val);
+                        if (count($parts) === 3) {
+                            return \Carbon\Carbon::createFromDate($parts[2], $parts[1], $parts[0])->format('Y-m-d');
+                        }
+                    }
+                    return \Carbon\Carbon::parse($val)->format('Y-m-d');
+                } catch (\Exception $e) { return null; }
+            };
+            
+            // 1. Pre-procesar para contar totales por batch (Header)
+            $batchMetadata = [];
+            foreach ($rowsArray as $row) {
+                $getRaw = function($names) use ($row) {
+                    foreach ((array)$names as $name) {
+                        $targetKey = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ', ' '], ['a', 'e', 'i', 'o', 'u', 'n', ''], strtolower(trim($name)));
+                        foreach ($row as $key => $value) {
+                            $cleanKey = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ', ' '], ['a', 'e', 'i', 'o', 'u', 'n', ''], strtolower(trim($key)));
+                            if ($cleanKey === $targetKey && ($value !== null && $value !== '')) return $value;
+                        }
+                    }
+                    return null;
+                };
+
+                $importDate = $fmtDate($getRaw(['fecha de importacion', 'importacion', 'fecha_importacion']));
+                $origin = $getRaw(['origen']) ?? 'N/A';
+                $provider = $getRaw(['proveedor']) ?? 'N/A';
+                $batchKey = "{$importDate}_{$origin}_{$provider}";
+
+                if (!isset($batchMetadata[$batchKey])) {
+                    $batchMetadata[$batchKey] = ['count' => 0];
+                }
+                $batchMetadata[$batchKey]['count']++;
+            }
+
+            $quarantineBarn = \App\Models\Barn::where('name', 'CUARENTENA')->first();
+
+            foreach ($rowsArray as $row) {
+                // Lambda para obtener valores con nombres de columnas flexibles
+                $get = function($names) use ($row) {
+                    foreach ((array)$names as $name) {
+                        $targetKey = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ', ' '], ['a', 'e', 'i', 'o', 'u', 'n', ''], strtolower(trim($name)));
+                        foreach ($row as $key => $value) {
+                            $cleanKey = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ', ' '], ['a', 'e', 'i', 'o', 'u', 'n', ''], strtolower(trim($key)));
+                            if ($cleanKey === $targetKey && ($value !== null && $value !== '')) {
+                                return is_string($value) ? trim($value) : $value;
+                            }
+                        }
+                    }
+                    return null;
+                };
+
+                $importDate = $fmtDate($get(['fecha de importacion', 'importacion', 'fecha_importacion']));
+                $origin = $get(['origen']) ?? 'N/A';
+                $provider = $get(['proveedor']) ?? 'N/A';
+                $batchKey = "{$importDate}_{$origin}_{$provider}";
+
+                if (!isset($batches[$batchKey])) {
+                    $meta = $batchMetadata[$batchKey];
+                    $batches[$batchKey] = \App\Models\QuarantineBatch::firstOrCreate(
+                        ['entry_date' => $importDate, 'origin' => $origin, 'provider' => $provider],
+                        [
+                            'document_number' => 'IMP-' . strtoupper(substr($origin, 0, 3)) . '-' . date('ymd', strtotime($importDate ?? now())), 
+                            'status' => 'ABIERTO',
+                            'total_quantity' => $meta['count']
+                        ]
+                    );
+                }
+                $batch = $batches[$batchKey];
+
+                $findGen = function($name) use ($geneticsMap) {
+                    if (!$name) return null;
+                    $name = strtoupper(trim($name));
+                    foreach ($geneticsMap as $gName => $id) {
+                        if (strtoupper($gName) === $name || str_contains(strtoupper($gName), $name)) return $id;
+                    }
+                    return null;
+                };
+
+                $birthDate = $fmtDate($get(['fecha nacimiento', 'nacimiento']));
+                $lote = $birthDate ? (int)\App\Services\PicDateService::fromDate($birthDate)['pic'] : null;
+                
+                $sexRaw = strtoupper(trim($get(['sexo', 'sex', 'gender']) ?? 'HEMBRA'));
+                $itemSex = str_starts_with($sexRaw, 'M') ? 'MACHO' : 'HEMBRA';
+
+                \App\Models\QuarantineItem::create([
+                    'quarantine_batch_id' => $batch->id,
+                    'internal_id'         => $get(['id number', 'id_number']),
+                    'official_id'         => $get(['id']),
+                    'genetic_id'          => $findGen($get(['raza'])),
+                    'birth_date'          => $birthDate,
+                    'sex'                 => $itemSex,
+                    'extra_status'        => $get(['estatus']),
+                    'lote'                => $lote,
+                    'barn_id'             => $quarantineBarn ? $quarantineBarn->id : null,
+                    'status'              => 'PENDIENTE',
+
+                    // Generación 1: Padres
+                    'f_tag'               => $get(['papa']),
+                    'f_genetic_id'        => $findGen($get(['raza_1'])),
+                    'f_sex'               => 'MACHO',
+                    'm_tag'               => $get(['mama']),
+                    'm_genetic_id'        => $findGen($get(['raza_4'])),
+                    'm_sex'               => 'HEMBRA',
+
+                    // Generación 2: Abuelos
+                    'ff_tag'              => $get(['abuelo_p']),
+                    'ff_genetic_id'       => $findGen($get(['raza_2'])),
+                    'ff_sex'              => 'MACHO',
+                    'fm_tag'              => $get(['abuela_p']),
+                    'fm_genetic_id'       => $findGen($get(['raza_3'])),
+                    'fm_sex'              => 'HEMBRA',
+                    'mf_tag'              => $get(['abuelo_m']),
+                    'mf_genetic_id'       => $findGen($get(['raza_5'])),
+                    'mf_sex'              => 'MACHO',
+                    'mm_tag'              => $get(['abuela_m']),
+                    'mm_genetic_id'       => $findGen($get(['raza_6'])),
+                    'mm_sex'              => 'HEMBRA',
+
+                    // Generación 3: Bisabuelos (Solo Tags)
+                    'fff_tag'             => $get(['bisabuelo']), 
+                    'ffm_tag'             => $get(['bisabuela']),
+                    'fmf_tag'             => $get(['bisabuelo_1']), 
+                    'fmm_tag'             => $get(['bisabuela_1']),
+                    'mff_tag'             => $get(['bisabuelo_2']), 
+                    'mfm_tag'             => $get(['bisabuela_2']),
+                    'mmf_tag'             => $get(['bisabuelo_3']), 
+                    'mmm_tag'             => $get(['bisabuela_3']),
+                ]);
+
+                $count++;
+            }
+
+            DB::commit();
+
+            $this->reset('importationFile');
+            $this->dispatch('notify', ['icon' => 'success', 'title' => "Historial: $count cargados", 'text' => "Los registros se guardaron en el histórico de importaciones."]);
+
+        } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) DB::rollBack();
+            Log::error("Error importando historial: " . $e->getMessage());
+            $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
+        }
+        $this->isImportingImportations = false;
     }
 
     public function render()

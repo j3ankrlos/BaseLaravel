@@ -72,45 +72,48 @@ class InventoryListView extends Component
         $currentPic = $currentPicData['pic'];
 
         $query = Animal::query()
+            ->join('animal_details', 'animals.id', '=', 'animal_details.animal_id')
             ->selectRaw('
-                MIN(id) as id, 
-                SUM(quantity) as quantity,
-                GROUP_CONCAT(DISTINCT source ORDER BY source SEPARATOR "-") as source,
-                MIN(entry_date) as entry_date,
-                management_lot,
-                internal_id,
-                genetic_id,
-                sex,
-                nave_id,
-                seccion_id,
-                corral,
-                stage_id,
-                SUM(weight * quantity) / SUM(quantity) as weight,
-                MAX(age_days) as age_days,
-                MAX(feed_type) as feed_type
+                MIN(animals.id) as id, 
+                SUM(animals.quantity) as quantity,
+                GROUP_CONCAT(DISTINCT animal_details.source ORDER BY animal_details.source SEPARATOR "-") as source,
+                MIN(animals.entry_date) as entry_date,
+                animal_details.management_lot,
+                animals.internal_id,
+                animals.genetic_id,
+                animals.sex,
+                animals.nave_id,
+                animals.seccion_id,
+                animals.corral,
+                animals.stage_id,
+                SUM(animal_details.weight * animals.quantity) / SUM(animals.quantity) as weight,
+                MAX(animal_details.feed_type) as feed_type,
+                MAX(animal_details.act_curso) as act_curso,
+                MAX(animal_details.lote_sap) as lote_sap,
+                MAX(animal_details.order_number) as order_number
             ')
-            ->with(['genetic', 'nave', 'seccion', 'stage'])
-            ->where('status', 'Activo')
+            ->with(['genetic', 'nave', 'seccion', 'stage', 'semen'])
+            ->where('animals.status', 'Activo')
             ->when($this->search, function ($q) {
                 $q->where(function ($sq) {
-                    $sq->where('internal_id', 'like', '%' . $this->search . '%')
-                       ->orWhere('management_lot', 'like', '%' . $this->search . '%')
-                       ->orWhere('lote_sap', 'like', '%' . $this->search . '%')
-                       ->orWhere('source', 'like', '%' . $this->search . '%');
+                    $sq->where('animals.internal_id', 'like', '%' . $this->search . '%')
+                       ->orWhere('animal_details.management_lot', 'like', '%' . $this->search . '%')
+                       ->orWhere('animal_details.lote_sap', 'like', '%' . $this->search . '%')
+                       ->orWhere('animal_details.source', 'like', '%' . $this->search . '%');
                 });
             })
-            ->when($this->f_nave_id, fn($q) => $q->where('nave_id', $this->f_nave_id))
-            ->when($this->f_genetic_id, fn($q) => $q->where('genetic_id', $this->f_genetic_id))
-            ->when($this->f_feed_type, fn($q) => $q->where('feed_type', $this->f_feed_type))
+            ->when($this->f_nave_id, fn($q) => $q->where('animals.nave_id', $this->f_nave_id))
+            ->when($this->f_genetic_id, fn($q) => $q->where('animals.genetic_id', $this->f_genetic_id))
+            ->when($this->f_feed_type, fn($q) => $q->where('animal_details.feed_type', $this->f_feed_type))
             ->groupBy([
-                'management_lot',
-                'internal_id',
-                'genetic_id',
-                'sex',
-                'nave_id',
-                'seccion_id',
-                'corral',
-                'stage_id'
+                'animal_details.management_lot',
+                'animals.internal_id',
+                'animals.genetic_id',
+                'animals.sex',
+                'animals.nave_id',
+                'animals.seccion_id',
+                'animals.corral',
+                'animals.stage_id'
             ])
             ->orderBy($this->sortBy, $this->sortDir);
 
@@ -118,7 +121,7 @@ class InventoryListView extends Component
             'animals' => $query->paginate($this->perPage),
             'barns' => Barn::pluck('name', 'id'),
             'genetics' => Genetic::pluck('name', 'id'),
-            'feedTypes' => Animal::whereNotNull('feed_type')->distinct()->pluck('feed_type'),
+            'feedTypes' => \App\Models\AnimalDetail::whereNotNull('feed_type')->distinct()->pluck('feed_type'),
             'currentPic' => $currentPic,
         ]);
     }

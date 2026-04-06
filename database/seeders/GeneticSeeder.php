@@ -13,14 +13,15 @@ class GeneticSeeder extends Seeder
     public function run(): void
     {
         $genetics = [
-            ['name' => 'YORK', 'code' => 'Y'],
-            ['name' => 'YORK-T', 'code' => 'YT'],
+            ['name' => 'YORKSHIRE', 'code' => 'Y'],
+            ['name' => 'YORKSHIRE-T', 'code' => 'YT'],
             ['name' => 'DUROC', 'code' => 'D'],
             ['name' => 'DUROC-T', 'code' => 'DT'],
             ['name' => 'LANDRACE', 'code' => 'L'],
-            ['name' => 'LANDRA-T', 'code' => 'LT'],
+            ['name' => 'LANDRACE-T', 'code' => 'LT'],
             ['name' => 'F1', 'code' => ''],
-            ['name' => 'F1-T', 'code' => 'F'],
+            ['name' => 'F1-T', 'code' => 'FT'],
+            ['name' => 'F2', 'code' => ''],
         ];
 
         foreach ($genetics as $genetic) {

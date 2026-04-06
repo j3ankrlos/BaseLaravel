@@ -278,8 +278,35 @@
                     
                     <!-- Separador REEMPLAZO -->
                     <li class="nav-separator">
-                        <div class="nav-separator-text">Reemplazo</div>
+                        <div class="nav-separator-text">Flujo de Importación</div>
                         <div class="nav-separator-line"></div>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-decoration-none d-flex justify-content-between align-items-center {{ request()->is('quarantine*') ? 'active' : '' }}" 
+                           href="#" data-submenu-toggle="quarantineSubmenu" aria-expanded="{{ request()->is('quarantine*') ? 'true' : 'false' }}">
+                            <div class="d-flex align-items-center">
+                                <i class="ph ph-shield-check"></i>
+                                <span class="nav-text">Cuarentena</span>
+                            </div>
+                            <i class="ph ph-caret-down menu-arrow nav-text"></i>
+                        </a>
+                        <div class="submenu {{ request()->is('quarantine*') ? 'show' : '' }}" id="quarantineSubmenu">
+                            <ul class="nav flex-column ps-3">
+                                <li class="nav-item">
+                                    <a href="{{ route('quarantine.index') }}" class="nav-link {{ request()->routeIs('quarantine.index') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                                        <i class="ph ph-barcode"></i>
+                                        <span class="nav-text">Ingreso a Cuarentena</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('quarantine.incorporation') }}" class="nav-link {{ request()->routeIs('quarantine.incorporation') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                                        <i class="ph ph-arrows-out-cardinal"></i>
+                                        <span class="nav-text">Incorp. Pubertad/Stud</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
 
                     {{-- SECCIÓN GENÉTICA Y REPRODUCCIÓN --}}
@@ -306,11 +333,6 @@
                                         <span class="nav-text">Registrar Parto</span>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a href="{{ route('genetics.births.import') }}" class="nav-link {{ request()->routeIs('genetics.births.import') ? 'active' : '' }} text-decoration-none" wire:navigate>
-                                        <i class="ph ph-file-arrow-up"></i>
-                                        <span class="nav-text">Importar Excel</span>
-                                    </a>
                                 </li>
                             </ul>
                         </div>
@@ -346,8 +368,14 @@
                     </li>
                     <li class="nav-item">
                         <a href="{{ route('system.migration') }}" class="nav-link {{ request()->routeIs('system.migration') ? 'active' : '' }} text-decoration-none" wire:navigate>
-                            <i class="ph ph-database-backup"></i>
+                            <i class="ph ph-database"></i>
                             <span class="nav-text">Migración de Datos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ route('system.feeds') }}" class="nav-link {{ request()->routeIs('system.feeds') ? 'active' : '' }} text-decoration-none" wire:navigate>
+                            <i class="ph ph-cylinder"></i>
+                            <span class="nav-text">Gestión de Alimentos</span>
                         </a>
                     </li>
                     @endrole

@@ -12,6 +12,11 @@ use App\Models\DeathCause;
 use App\Models\Genetic;
 use App\Models\Barn;
 use App\Models\User;
+use App\Models\Semen;
+use App\Models\Feed;
+use App\Models\QuarantineBatch;
+use App\Models\QuarantineItem;
+use App\Models\AnimalDetail;
 use Livewire\Component;
 use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +44,8 @@ class MovementOperations extends Component
     public $genetics = [];
     public $barns = [];
     public $recriaAvailableSections = [];
+    public $i_available_genetics = []; // Genetics in selected room
+    public $l_available_genetics = []; // Genetics in selected lot
 
     // INGRESOS Form
     public $i_source_id; 
@@ -49,6 +56,7 @@ class MovementOperations extends Component
     public $i_selected_details = []; 
     public $i_all_selected = false;
     public $i_discard_remaining = false; 
+
 
     // LEVANTE form
     public $l_genetic_id;
@@ -65,7 +73,7 @@ class MovementOperations extends Component
     public $i_quantity;
     public $i_weight;
     public $i_feed_type;
-    public $allFeedTypes = ['Pre-inic', 'Pre-inic-0', 'Iniciador', 'Lech-1', 'Lech-2'];
+    public $allFeedTypes = [];
     
     // Individualization fields
     public $i_prefix_id = 'F1-T-';
@@ -102,6 +110,10 @@ class MovementOperations extends Component
     public $p_animal_id;
     public $p_target_role; 
 
+    // SEMEN activation
+    public $s_animal_id;
+    public $s_semen_code;
+    public $s_date;
     public function mount()
     {
         $this->stages = Stage::orderBy('order')->get();
@@ -109,7 +121,9 @@ class MovementOperations extends Component
         $this->barnSections = BarnSection::with('barn')->get();
         $this->deathCauses = DeathCause::orderBy('name')->get();
         $this->genetics = Genetic::all();
+        $this->allFeedTypes = Feed::orderBy('name')->pluck('name')->toArray();
         $this->operation_date = now()->format('Y-m-d');
+        $this->s_date = now()->format('Y-m-d');
         $picData = \App\Services\PicDateService::fromDate(now());
         $this->operation_pic = $picData['vuelta'] . '-' . str_pad($picData['pic'], 3, '0', STR_PAD_LEFT);
         
@@ -141,7 +155,7 @@ class MovementOperations extends Component
 
     public function loadInventory()
     {
-        $this->activeInventory = Animal::with(['stage', 'nave', 'seccion', 'genetic'])
+        $this->activeInventory = Animal::with(['stage', 'nave', 'seccion', 'genetic', 'detail'])
             ->where('status', 'Activo')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -150,62 +164,109 @@ class MovementOperations extends Component
     public function loadBirths()
     {
         $birthQuery = Birth::where('estado', 2);
+        
+        // Rooms are always available
+        $this->rooms = (clone $birthQuery)->distinct()->orderBy('room')->pluck('room');
+
+        // Filter available genetics based on selected room
+        if ($this->i_selected_room) {
+            $roomGeneticsIds = (clone $birthQuery)->where('room', $this->i_selected_room)->pluck('genetic_id')->unique();
+            $this->i_available_genetics = Genetic::whereIn('id', $roomGeneticsIds)->get();
+        } else {
+            $this->i_available_genetics = [];
+        }
+
         $individualBirthQuery = (clone $birthQuery);
-        if ($this->i_genetic_id) {
-            $individualBirthQuery->where('genetic_id', $this->i_genetic_id);
-        }
+        if ($this->i_selected_room) $individualBirthQuery->where('room', $this->i_selected_room);
+        if ($this->i_genetic_id) $individualBirthQuery->where('genetic_id', $this->i_genetic_id);
+        
         $this->births = $individualBirthQuery->with(['genetic', 'responsible'])->orderBy('room')->get();
-        $roomQuery = (clone $birthQuery);
-        if ($this->i_genetic_id && $this->i_genetic_id != 7) {
-            $roomQuery->where('genetic_id', $this->i_genetic_id);
-        }
-        $this->rooms = $roomQuery->distinct()->orderBy('room')->pluck('room');
     }
 
     public function updatedIGeneticId()
     {
         if ($this->ingresoType == 'RECRIA') {
-            $this->i_selected_room = null;
-            $this->i_birth_details = [];
-            $this->i_selected_details = [];
-            $this->i_quantity = 0;
-            $this->loadBirths();
+            if ($this->i_selected_room && $this->i_genetic_id) {
+                $isF1Batch = $this->i_genetic_id == 7;
+                if ($isF1Batch) {
+                    $this->i_quantity = 0; // Will be calculated on process
+                    $this->i_birth_details = [];
+                } else {
+                    $this->i_birth_details = BirthDetail::whereHas('birth', function($q) {
+                        $q->where('room', $this->i_selected_room)->where('genetic_id', $this->i_genetic_id)->where('estado', 2);
+                    })->where('status', 'MATERNIDAD')->with(['birth.genetic', 'birth.responsible'])->get()->toArray();
+                }
+            }
+            $this->i_selected_details = []; $this->i_all_selected = false; $this->syncDiscardRemaining();
         } elseif ($this->ingresoType == 'LEVANTE') {
-            $this->l_genetic_id = $this->i_genetic_id;
-            $this->l_selected_lot = null;
-            $this->l_animal_list = [];
-            $this->l_selected_animals = [];
-            $this->l_all_selected = false;
-            $this->i_quantity = 0;
             $this->loadLevanteAnimals();
         }
     }
+
 
     public function loadLevanteAnimals()
     {
         $stageRecria = Stage::where('name', 'Recría')->first();
         if (!$stageRecria) return;
         $query = Animal::where('status', 'Activo')->where('stage_id', $stageRecria->id);
-        if ($this->l_genetic_id) $query->where('genetic_id', $this->l_genetic_id);
-        $animals = $query->with(['genetic'])->orderBy('management_lot')->get();
-        $this->l_lots = $animals->filter(fn($a) => !empty($a->management_lot))->groupBy('management_lot')->map(fn($group) => ['lot' => $group->first()->management_lot, 'total' => $group->sum('quantity')])->values()->toArray();
-        if ($this->l_selected_lot) $this->updatedLSelectedLot($this->l_selected_lot); else { $this->l_animal_list = []; $this->l_selected_animals = []; }
+        
+        // Load all lots first
+        $animals = (clone $query)->with(['detail'])->get();
+        $this->l_lots = $animals->filter(fn($a) => !empty($a->detail?->management_lot))
+            ->groupBy(fn($a) => $a->detail->management_lot)
+            ->map(fn($group) => ['lot' => $group->first()->detail->management_lot, 'total' => $group->sum('quantity')])
+            ->values()->toArray();
+
+        // If lot is selected, filter genetics
+        if ($this->l_selected_lot) {
+            $lotGeneticsIds = (clone $query)->whereHas('detail', function($q) {
+                $q->where('management_lot', $this->l_selected_lot);
+            })->pluck('genetic_id')->unique();
+            $this->l_available_genetics = Genetic::whereIn('id', $lotGeneticsIds)->get();
+        } else {
+            $this->l_available_genetics = [];
+        }
+
+        if ($this->l_selected_lot && $this->l_genetic_id) {
+            $this->updatedLSelectedLot($this->l_selected_lot);
+        } else {
+            $this->l_animal_list = [];
+            $this->l_selected_animals = [];
+        }
     }
 
-    public function updatedLGeneticId() { $this->l_selected_lot = null; $this->l_animal_list = []; $this->l_selected_animals = []; $this->l_all_selected = false; $this->i_quantity = 0; $this->loadLevanteAnimals(); }
+    public function updatedLGeneticId() { $this->loadLevanteAnimals(); }
 
     public function updatedLSelectedLot($value)
     {
-        $this->l_selected_animals = []; $this->l_all_selected = false;
-        if (!$value) { $this->l_animal_list = []; $this->i_quantity = 0; return; }
-        $isF1 = $this->l_genetic_id == 7;
-        $stageRecriaId = Stage::where('name', 'Recría')->value('id');
-        if ($isF1) {
-            $this->i_quantity = Animal::where('management_lot', $value)->where('stage_id', $stageRecriaId)->where('status', 'Activo')->where('genetic_id', $this->l_genetic_id)->sum('quantity');
-            $this->l_animal_list = [];
-        } else {
-            $this->l_animal_list = Animal::where('management_lot', $value)->where('stage_id', $stageRecriaId)->where('status', 'Activo')->where('genetic_id', $this->l_genetic_id)->with(['genetic'])->get()->toArray();
-            $this->i_quantity = 0;
+        $this->l_genetic_id = null;
+        $this->loadLevanteAnimals();
+        $this->l_selected_animals = [];
+        $this->l_all_selected = false;
+        $this->i_quantity = 0;
+        
+        // This part is the actual filtering logic that was previously in updatedLSelectedLot
+        if ($value) {
+            $isF1 = $this->l_genetic_id == 7;
+            $stageRecriaId = Stage::where('name', 'Recría')->value('id');
+            
+            $baseQuery = Animal::whereHas('detail', function($q) use ($value) {
+                $q->where('management_lot', $value);
+            })->where('stage_id', $stageRecriaId)->where('status', 'Activo');
+
+            if ($this->l_genetic_id) {
+                $baseQuery->where('genetic_id', $this->l_genetic_id);
+                if ($isF1) {
+                    $this->i_quantity = $baseQuery->sum('quantity');
+                    $this->l_animal_list = [];
+                } else {
+                    $this->l_animal_list = $baseQuery->with(['genetic', 'detail'])->get()->toArray();
+                    $this->i_quantity = count($this->l_selected_animals);
+                }
+            } else {
+                $this->l_animal_list = [];
+                $this->i_quantity = 0;
+            }
         }
     }
 
@@ -241,7 +302,7 @@ class MovementOperations extends Component
     private function updateFeedType()
     {
         $barnName = $this->i_nave_id ? Barn::find($this->i_nave_id)?->name : null;
-        if ($this->ingresoType == 'RECRIA') $this->i_feed_type = 'Pre-inic'; 
+        if ($this->ingresoType == 'RECRIA') $this->i_feed_type = 'PRE INICIADOR'; 
         else $this->i_feed_type = $this->getFeedTypeByLocation($barnName);
 
         $available = $this->getAvailableFeedTypes($barnName ?: ($this->ingresoType == 'RECRIA' ? 'RECRIA' : null));
@@ -251,15 +312,15 @@ class MovementOperations extends Component
     public function getAvailableFeedTypes($location)
     {
         if (empty($location)) return $this->allFeedTypes;
-        if ($location === 'RECRIA') return ['Pre-inic', 'Pre-inic-0', 'Iniciador'];
-        if (in_array($location, ['LB', 'LA', 'LE', 'PUB3', 'PUB2-D'])) return ['Lech-1'];
-        if (in_array($location, ['MP1', 'MP2', 'PUB1', 'PUB2'])) return ['Lech-2'];
+        if ($location === 'RECRIA') return ['PRE INICIADOR', 'PRE INICIADOR FASE 0', 'INICIADOR I'];
+        if (in_array($location, ['LB', 'LA', 'LE', 'PUB3', 'PUB2-D'])) return ['LECHONA I'];
+        if (in_array($location, ['MP1', 'MP2', 'PUB1', 'PUB2'])) return ['LECHONA II'];
         return $this->allFeedTypes;
     }
 
     private function getFeedTypeByLocation($location)
     {
-        $mapping = ['RECRIA' => 'Pre-inic', 'LB' => 'Lech-1', 'LA' => 'Lech-1', 'LE' => 'Lech-1', 'MP1' => 'Lech-2', 'PUB1' => 'Lech-2', 'MP2' => 'Lech-2', 'PUB2' => 'Lech-2', 'PUB3' => 'Lech-1', 'PUB2-D' => 'Lech-1'];
+        $mapping = ['RECRIA' => 'PRE INICIADOR', 'LB' => 'LECHONA I', 'LA' => 'LECHONA I', 'LE' => 'LECHONA I', 'MP1' => 'LECHONA II', 'PUB1' => 'LECHONA II', 'MP2' => 'LECHONA II', 'PUB2' => 'LECHONA II', 'PUB3' => 'LECHONA I', 'PUB2-D' => 'LECHONA I'];
         return $mapping[$location] ?? null;
     }
 
@@ -268,7 +329,9 @@ class MovementOperations extends Component
         $recria = Stage::where('name', 'Recría')->first();
         $allSections = BarnSection::where('barn_id', $barnId)->orderBy('name')->get();
         $activeSectionIds = Animal::where('stage_id', $recria?->id)->where('status', 'Activo')->whereNotNull('seccion_id')->pluck('seccion_id')->unique();
-        $procSectionId = Animal::where('stage_id', $recria?->id)->where('status', 'Activo')->where('management_lot', 'PROC')->whereNotNull('seccion_id')->value('seccion_id');
+        $procSectionId = Animal::where('stage_id', $recria?->id)->where('status', 'Activo')
+                               ->whereHas('detail', function($q) { $q->where('management_lot', 'PROC'); })
+                               ->whereNotNull('seccion_id')->value('seccion_id');
 
         $this->recriaAvailableSections = $allSections->map(function ($section) use ($activeSectionIds, $procSectionId) {
             $isProc = $section->id === $procSectionId;
@@ -282,18 +345,15 @@ class MovementOperations extends Component
 
     public function updatedISelectedRoom($value)
     {
-        if ($value && $this->ingresoType == 'RECRIA') {
-            $isF1Batch = $this->i_genetic_id == 7;
-            if ($isF1Batch) $this->i_quantity = 0;
-            else {
-                $this->i_birth_details = BirthDetail::whereHas('birth', function($q) use ($value) {
-                    $q->where('room', $value)->where('genetic_id', $this->i_genetic_id)->where('estado', 2);
-                })->where('status', 'MATERNIDAD')->with(['birth.genetic', 'birth.responsible'])->get()->toArray();
-                if (empty($this->i_birth_details)) $this->dispatch('notify', ['icon' => 'info', 'title' => 'Sin animales', 'text' => 'No hay animales disponibles.']);
-            }
-            $this->i_selected_details = []; $this->i_all_selected = false; $this->syncDiscardRemaining();
-        } else { $this->i_birth_details = []; $this->i_quantity = 0; $this->i_discard_remaining = false; }
+        $this->i_genetic_id = null;
+        $this->loadBirths();
+        $this->i_birth_details = [];
+        $this->i_selected_details = [];
+        $this->i_quantity = 0;
+        $this->i_discard_remaining = false;
     }
+
+
 
     public function updatedIAllSelected($value) { $this->i_selected_details = $value ? collect($this->i_birth_details)->pluck('id')->map(fn($id) => (string)$id)->toArray() : []; $this->i_quantity = count($this->i_selected_details); $this->syncDiscardRemaining(); }
     public function updatedISelectedDetails() { $this->i_quantity = count($this->i_selected_details); $this->i_all_selected = count($this->i_selected_details) === count($this->i_birth_details) && count($this->i_birth_details) > 0; $this->syncDiscardRemaining(); }
@@ -348,8 +408,11 @@ class MovementOperations extends Component
                     $loteSap = $sourcePrefix . 'EXP' . $ageDays . '0';
 
                     $animal = Animal::create([
-                        'quantity' => $this->i_quantity, 'entry_date' => $this->operation_date, 'birth_date' => $birthDate, 'source' => $sourcePrefix, 'management_lot' => $this->i_management_lot, 'genetic_id' => $this->i_genetic_id, 'sex' => 'Hembra', 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'stage_id' => $stage->id, 'status' => 'Activo', 'evento' => 'En Recría', 'lote_sap' => $loteSap, 'age_days' => $ageDays, 'weight' => $this->parseDecimal($this->i_weight), 'feed_type' => $this->i_feed_type,
+                        'quantity' => $this->i_quantity, 'entry_date' => $this->operation_date, 'birth_date' => $birthDate, 'genetic_id' => $this->i_genetic_id, 'sex' => 'Hembra', 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'stage_id' => $stage->id, 'status' => 'Activo',
                         'mother_tag' => '0', 'father_tag' => '0'
+                    ]);
+                    $animal->detail()->create([
+                        'source' => $sourcePrefix, 'management_lot' => $this->i_management_lot, 'lote_sap' => $loteSap, 'weight' => $this->parseDecimal($this->i_weight), 'feed_type' => $this->i_feed_type, 'evento' => 'En Recría'
                     ]);
                     Movement::create([
                         'user_id' => auth()->id(), 'animal_id' => $animal->id, 'movement_date' => $this->operation_date, 'movement_type' => 'INGRESO_RECRIA', 'quantity' => $this->i_quantity, 'to_nave_id' => $this->i_nave_id, 'to_seccion_id' => $this->i_seccion_id, 'to_corral' => $animal->corral, 'to_stage_id' => $stage->id, 'note' => 'Ingreso Lote F1 - Sala ' . $this->i_selected_room,
@@ -372,8 +435,11 @@ class MovementOperations extends Component
                         $fatherId = Animal::where('internal_id', $fatherTag)->value('id');
 
                         $animal = Animal::create([
-                            'quantity' => 1, 'entry_date' => $this->operation_date, 'birth_date' => $birthDate, 'source' => $sourcePrefix, 'management_lot' => $this->i_management_lot, 'internal_id' => $detail->generated_id, 'genetic_id' => $detail->birth->genetic_id, 'sex' => $detail->sex, 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'stage_id' => $stage->id, 'status' => 'Activo', 'evento' => 'En Recría', 'lote_sap' => $loteSap, 'age_days' => $ageDays, 'weight' => $this->parseDecimal($this->i_weight), 'feed_type' => $this->i_feed_type,
+                            'quantity' => 1, 'entry_date' => $this->operation_date, 'birth_date' => $birthDate, 'internal_id' => $detail->generated_id, 'genetic_id' => $detail->birth->genetic_id, 'sex' => $detail->sex, 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'stage_id' => $stage->id, 'status' => 'Activo',
                             'mother_id' => $motherId, 'father_id' => $fatherId, 'mother_tag' => $motherTag, 'father_tag' => $fatherTag
+                        ]);
+                        $animal->detail()->create([
+                            'source' => $sourcePrefix, 'management_lot' => $this->i_management_lot, 'lote_sap' => $loteSap, 'weight' => $this->parseDecimal($this->i_weight), 'feed_type' => $this->i_feed_type, 'evento' => 'En Recría'
                         ]);
                         Movement::create([
                             'user_id' => auth()->id(), 'animal_id' => $animal->id, 'movement_date' => $this->operation_date, 'movement_type' => 'INGRESO_RECRIA', 'quantity' => 1, 'to_nave_id' => $this->i_nave_id, 'to_seccion_id' => $this->i_seccion_id, 'to_corral' => $animal->corral, 'to_stage_id' => $stage->id, 'note' => 'Ingreso Individual - Arete: ' . $detail->generated_id,
@@ -390,7 +456,12 @@ class MovementOperations extends Component
                     }
                 }
                 DB::commit();
-                if ($this->i_management_lot !== 'PROC') Animal::where('stage_id', $stage->id)->where('management_lot', 'PROC')->where('status', 'Activo')->update(['management_lot' => $this->i_management_lot]);
+                if ($this->i_management_lot !== 'PROC') {
+                    $procIds = Animal::where('stage_id', $stage->id)->where('status', 'Activo')
+                                     ->whereHas('detail', function($q) { $q->where('management_lot', 'PROC'); })
+                                     ->pluck('id');
+                    \App\Models\AnimalDetail::whereIn('animal_id', $procIds)->update(['management_lot' => $this->i_management_lot]);
+                }
                 $this->dispatch('notify', ['icon' => 'success', 'title' => 'Éxito']); $this->resetFields();
             } catch (\Exception $e) { DB::rollBack(); Log::error($e->getMessage()); $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]); }
         } elseif ($this->ingresoType == 'LEVANTE') {
@@ -404,17 +475,21 @@ class MovementOperations extends Component
             DB::beginTransaction();
             try {
                 if ($isF1) {
-                    $items = Animal::where('management_lot', $this->l_selected_lot)->where('stage_id', $stageRecriaId)->where('status', 'Activo')->where('genetic_id', $this->l_genetic_id)->get();
+                    $items = Animal::whereHas('detail', function($q) { $q->where('management_lot', $this->l_selected_lot); })
+                                   ->where('stage_id', $stageRecriaId)->where('status', 'Activo')->where('genetic_id', $this->l_genetic_id)->with('detail')->get();
                     $qtyToMove = $this->i_quantity;
                     foreach ($items as $item) {
                         if ($qtyToMove <= 0) break;
                         $moveQty = min($item->quantity, $qtyToMove);
                         $oldNave = $item->nave_id; $oldSec = $item->seccion_id; $oldCorral = $item->corral;
                         if ($moveQty < $item->quantity) {
-                            $newItem = $item->replicate(); $newItem->quantity = $moveQty; $newItem->stage_id = $stageLevante->id; $newItem->evento = 'En Levante'; $newItem->nave_id = $this->i_nave_id; $newItem->seccion_id = $this->i_seccion_id; $newItem->corral = (int)$this->i_corral; $newItem->weight = $this->parseDecimal($this->i_weight); $newItem->save();
+                            $newItem = $item->replicate(); $newItem->quantity = $moveQty; $newItem->stage_id = $stageLevante->id; $newItem->nave_id = $this->i_nave_id; $newItem->seccion_id = $this->i_seccion_id; $newItem->corral = (int)$this->i_corral; $newItem->save();
+                            if ($item->detail) { $newDetail = $item->detail->replicate(); $newDetail->animal_id = $newItem->id; $newDetail->evento = 'En Levante'; $newDetail->weight = $this->parseDecimal($this->i_weight); $newDetail->save(); }
                             $item->decrement('quantity', $moveQty); $targetId = $newItem->id;
                         } else {
-                            $item->update(['stage_id' => $stageLevante->id, 'evento' => 'En Levante', 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'weight' => $this->parseDecimal($this->i_weight)]); $targetId = $item->id;
+                            $item->update(['stage_id' => $stageLevante->id, 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral]); 
+                            if ($item->detail) { $item->detail()->update(['evento' => 'En Levante', 'weight' => $this->parseDecimal($this->i_weight)]); }
+                            $targetId = $item->id;
                         }
                         Movement::create([
                             'user_id' => auth()->id(), 'animal_id' => $targetId, 'movement_date' => $this->operation_date, 'movement_type' => 'INGRESO_LEVANTE', 'quantity' => $moveQty, 'from_nave_id' => $oldNave, 'to_nave_id' => $this->i_nave_id, 'from_seccion_id' => $oldSec, 'to_seccion_id' => $this->i_seccion_id, 'from_corral' => $oldCorral, 'to_corral' => (int)$this->i_corral, 'from_stage_id' => $stageRecriaId, 'to_stage_id' => $stageLevante->id, 'note' => 'Lote ' . $this->l_selected_lot,
@@ -422,9 +497,10 @@ class MovementOperations extends Component
                         $qtyToMove -= $moveQty;
                     }
                 } else {
-                    foreach (Animal::whereIn('id', $this->l_selected_animals)->get() as $animal) {
+                    foreach (Animal::whereIn('id', $this->l_selected_animals)->with('detail')->get() as $animal) {
                         $oldNave = $animal->nave_id; $oldSec = $animal->seccion_id; $oldCorral = $animal->corral;
-                        $animal->update(['stage_id' => $stageLevante->id, 'evento' => 'En Levante', 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'weight' => $this->parseDecimal($this->i_weight)]);
+                        $animal->update(['stage_id' => $stageLevante->id, 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral]);
+                        if ($animal->detail) { $animal->detail()->update(['evento' => 'En Levante', 'weight' => $this->parseDecimal($this->i_weight)]); }
                         Movement::create([
                             'user_id' => auth()->id(), 'animal_id' => $animal->id, 'movement_date' => $this->operation_date, 'movement_type' => 'INGRESO_LEVANTE', 'quantity' => $animal->quantity, 'from_nave_id' => $oldNave, 'to_nave_id' => $this->i_nave_id, 'from_seccion_id' => $oldSec, 'to_seccion_id' => $this->i_seccion_id, 'from_corral' => $oldCorral, 'to_corral' => (int)$this->i_corral, 'from_stage_id' => $stageRecriaId, 'to_stage_id' => $stageLevante->id,
                         ]);
@@ -436,7 +512,8 @@ class MovementOperations extends Component
             $this->validate(['i_source_id' => 'required', 'i_quantity' => 'required|numeric|min:1', 'i_seccion_id' => 'required', 'i_corral' => 'required']);
             $stageLevanteId = Stage::where('name', 'Levante')->value('id');
             $stagePubertad = Stage::where('name', 'Pubertad')->firstOrFail();
-            $items = Animal::where('management_lot', $this->i_source_id)->where('stage_id', $stageLevanteId)->where('status', 'Activo')->get();
+            $items = Animal::whereHas('detail', function($q) { $q->where('management_lot', $this->i_source_id); })
+                           ->where('stage_id', $stageLevanteId)->where('status', 'Activo')->with('detail')->get();
 
             DB::beginTransaction();
             try {
@@ -445,13 +522,14 @@ class MovementOperations extends Component
                     if ($qtyToIndiv <= 0) break;
                     $takeQty = min($item->quantity, $qtyToIndiv);
                     $oldNave = $item->nave_id; $oldSec = $item->seccion_id; $oldCorral = $item->corral;
-                    $item->decrement('quantity', $takeQty); if ($item->quantity == 0) $item->update(['status' => 'Inactivo']);
+                    $item->decrement('quantity', $takeQty); if ($item->quantity == 0) { $item->update(['status' => 'Inactivo']); if ($item->detail) $item->detail()->update(['evento' => 'Consumido p/Pubertad']); }
                     
                     for ($i = 0; $i < $takeQty; $i++) {
                         $newId = $this->i_prefix_id . str_pad($corr++, 3, '0', STR_PAD_LEFT);
                         $ind = Animal::create([
-                            'internal_id' => $newId, 'management_lot' => $item->management_lot, 'quantity' => 1, 'status' => 'Activo', 'evento' => 'En Pubertad', 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'stage_id' => $stagePubertad->id, 'genetic_id' => $item->genetic_id, 'sex' => 'Hembra', 'entry_date' => now(), 'parent_animal_id' => $item->id,
+                            'internal_id' => $newId, 'quantity' => 1, 'status' => 'Activo', 'nave_id' => $this->i_nave_id, 'seccion_id' => $this->i_seccion_id, 'corral' => (int)$this->i_corral, 'stage_id' => $stagePubertad->id, 'genetic_id' => $item->genetic_id, 'sex' => 'Hembra', 'entry_date' => now()
                         ]);
+                        $ind->detail()->create(['management_lot' => $item->detail?->management_lot, 'evento' => 'En Pubertad']);
                         Movement::create([
                             'user_id' => auth()->id(), 'animal_id' => $ind->id, 'movement_date' => now(), 'movement_type' => 'INGRESO_PUBERTAD', 'quantity' => 1, 'from_nave_id' => $oldNave, 'to_nave_id' => $this->i_nave_id, 'from_seccion_id' => $oldSec, 'to_seccion_id' => $this->i_seccion_id, 'from_corral' => $oldCorral, 'to_corral' => (int)$this->i_corral, 'from_stage_id' => $stageLevanteId, 'to_stage_id' => $stagePubertad->id,
                         ]);
@@ -466,7 +544,7 @@ class MovementOperations extends Component
     public function processMovimiento()
     {
         $this->validate(['m_animal_id' => 'required', 'm_seccion_id' => 'required', 'm_corral' => 'required', 'm_quantity' => 'required|numeric|min:1']);
-        $item = Animal::findOrFail($this->m_animal_id);
+        $item = Animal::with('detail')->findOrFail($this->m_animal_id);
         if ($this->m_quantity > $item->quantity) { $this->addError('m_quantity', 'Excede inventario.'); return; }
 
         DB::beginTransaction();
@@ -474,6 +552,7 @@ class MovementOperations extends Component
             $oldNave = $item->nave_id; $oldSec = $item->seccion_id; $oldCorral = $item->corral;
             if ($this->m_quantity < $item->quantity) {
                 $newItem = $item->replicate(); $newItem->quantity = $this->m_quantity; $newItem->nave_id = $this->m_nave_id; $newItem->seccion_id = $this->m_seccion_id; $newItem->corral = (int)$this->m_corral; $newItem->save();
+                if ($item->detail) { $newDetail = $item->detail->replicate(); $newDetail->animal_id = $newItem->id; $newDetail->save(); }
                 $item->decrement('quantity', $this->m_quantity); $targetId = $newItem->id;
             } else {
                 $item->update(['nave_id' => $this->m_nave_id, 'seccion_id' => $this->m_seccion_id, 'corral' => (int)$this->m_corral]); $targetId = $item->id;
@@ -498,12 +577,13 @@ class MovementOperations extends Component
     public function processActivacion()
     {
         $this->validate(['act_animal_id' => 'required', 'act_boar' => 'required']);
-        $item = Animal::findOrFail($this->act_animal_id);
+        $item = Animal::with('detail')->findOrFail($this->act_animal_id);
         $stage = Stage::where('name', 'Gestación')->firstOrFail();
 
         DB::beginTransaction();
         try {
-            $item->update(['stage_id' => $stage->id, 'evento' => 'Inseminada']);
+            $item->update(['stage_id' => $stage->id]);
+            if ($item->detail) $item->detail()->update(['evento' => 'Inseminada']);
             Movement::create(['user_id' => auth()->id(), 'animal_id' => $item->id, 'movement_date' => $this->operation_date, 'movement_type' => 'ACTIVACION', 'quantity' => 0, 'to_stage_id' => $stage->id, 'note' => 'Activación - Verraco: ' . $this->act_boar]);
             DB::commit(); $this->dispatch('notify', ['icon' => 'success', 'title' => 'Éxito']); $this->resetFields();
         } catch (\Exception $e) { DB::rollBack(); $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error']); }
@@ -512,11 +592,11 @@ class MovementOperations extends Component
     public function processVenta()
     {
         $this->validate(['v_animal_id' => 'required', 'v_quantity' => 'required|numeric|min:1', 'v_weight' => 'required']);
-        $item = Animal::findOrFail($this->v_animal_id);
+        $item = Animal::with('detail')->findOrFail($this->v_animal_id);
         DB::beginTransaction();
         try {
             $item->decrement('quantity', $this->v_quantity);
-            if ($item->quantity == 0) $item->update(['status' => 'Inactivo', 'evento' => 'Vendido/Descartado']);
+            if ($item->quantity == 0) { $item->update(['status' => 'Inactivo']); if ($item->detail) $item->detail()->update(['evento' => 'Vendido/Descartado']); }
             Movement::create(['user_id' => auth()->id(), 'animal_id' => $item->id, 'movement_date' => $this->operation_date, 'movement_type' => 'VENTA', 'quantity' => -$this->v_quantity, 'weight' => $this->parseDecimal($this->v_weight), 'note' => $this->v_invoice]);
             DB::commit(); $this->dispatch('notify', ['icon' => 'success', 'title' => 'Éxito']); $this->resetFields();
         } catch (\Exception $e) { DB::rollBack(); $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error']); }
@@ -525,11 +605,11 @@ class MovementOperations extends Component
     public function processMortalidad()
     {
         $this->validate(['d_animal_id' => 'required', 'd_quantity' => 'required|numeric|min:1', 'd_death_cause_id' => 'required']);
-        $item = Animal::findOrFail($this->d_animal_id);
+        $item = Animal::with('detail')->findOrFail($this->d_animal_id);
         DB::beginTransaction();
         try {
             $item->decrement('quantity', $this->d_quantity);
-            if ($item->quantity == 0) $item->update(['status' => 'Inactivo', 'evento' => 'Muerte']);
+            if ($item->quantity == 0) { $item->update(['status' => 'Inactivo']); if ($item->detail) $item->detail()->update(['evento' => 'Muerte']); }
             Movement::create(['user_id' => auth()->id(), 'animal_id' => $item->id, 'movement_date' => $this->operation_date, 'movement_type' => 'MUERTE', 'quantity' => -$this->d_quantity, 'death_cause_id' => $this->d_death_cause_id, 'note' => $this->d_note]);
             DB::commit(); $this->dispatch('notify', ['icon' => 'success', 'title' => 'Baja Registrada']); $this->resetFields();
         } catch (\Exception $e) { DB::rollBack(); Log::error($e->getMessage()); $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error']); }
@@ -538,7 +618,7 @@ class MovementOperations extends Component
     public function processPromocion()
     {
         $this->validate(['p_animal_id' => 'required', 'p_target_role' => 'required']);
-        $item = Animal::findOrFail($this->p_animal_id);
+        $item = Animal::with('detail')->findOrFail($this->p_animal_id);
         $barnName = match($this->p_target_role) { 'STUD' => 'STUD', 'CELADOR_DM1' => 'DM1', 'CELADOR_DM2' => 'DM2', default => null };
         $targetBarn = Barn::where('name', $barnName)->first();
         if (!$targetBarn) return;
@@ -546,24 +626,64 @@ class MovementOperations extends Component
         DB::beginTransaction();
         try {
             $reproStage = Stage::where('name', 'Reproducción')->orWhere('name', 'Monta')->first();
-            $item->update(['nave_id' => $targetBarn->id, 'stage_id' => $reproStage ? $reproStage->id : $item->stage_id, 'evento' => 'Promocionado a ' . $this->p_target_role]);
+            $item->update(['nave_id' => $targetBarn->id, 'stage_id' => $reproStage ? $reproStage->id : $item->stage_id]);
+            if ($item->detail) $item->detail()->update(['evento' => 'Promocionado a ' . $this->p_target_role]);
             Movement::create(['user_id' => auth()->id(), 'animal_id' => $item->id, 'movement_date' => $this->operation_date, 'movement_type' => 'PROMOCION_MACHO', 'quantity' => 0, 'note' => 'Promoción a ' . $this->p_target_role]);
             DB::commit(); $this->dispatch('notify', ['icon' => 'success', 'title' => 'Éxito']); $this->resetFields();
         } catch (\Exception $e) { DB::rollBack(); $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error']); }
     }
 
+    public function processSemenActivation()
+    {
+        $this->validate([
+            's_animal_id' => 'required',
+            's_semen_code' => 'required|unique:semens,semen_code',
+            's_date' => 'required|date',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $semen = Semen::create([
+                'animal_id' => $this->s_animal_id,
+                'date' => $this->s_date,
+                'semen_code' => $this->s_semen_code,
+                'status' => 'Activo',
+            ]);
+
+            $animal = Animal::findOrFail($this->s_animal_id);
+            $animal->update(['semen_id' => $semen->id]);
+
+            Movement::create([
+                'user_id' => auth()->id(),
+                'animal_id' => $animal->id,
+                'movement_date' => $this->s_date,
+                'movement_type' => 'ACTIVACION_SEMEN',
+                'quantity' => 0,
+                'note' => 'Código Semen Asignado: ' . $this->s_semen_code,
+            ]);
+
+            DB::commit();
+            $this->dispatch('notify', ['icon' => 'success', 'title' => 'Semental Activado']);
+            $this->reset(['s_animal_id', 's_semen_code']);
+            $this->loadInventory();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->dispatch('notify', ['icon' => 'error', 'title' => 'Error', 'text' => $e->getMessage()]);
+        }
+    }
+
     private function resetFields()
     {
-        $this->reset(['i_source_id', 'i_quantity', 'i_seccion_id', 'i_corral', 'i_weight', 'm_animal_id', 'm_quantity', 'm_seccion_id', 'm_corral', 'v_animal_id', 'v_quantity', 'v_weight', 'v_invoice', 'd_animal_id', 'd_quantity', 'd_death_cause_id', 'd_note', 'act_animal_id', 'act_boar', 'i_selected_room', 'i_birth_details', 'i_selected_details', 'i_all_selected', 'i_discard_remaining', 'i_feed_type', 'p_animal_id', 'p_target_role']);
+        $this->reset(['i_source_id', 'i_quantity', 'i_seccion_id', 'i_corral', 'i_weight', 'm_animal_id', 'm_quantity', 'm_seccion_id', 'm_corral', 'v_animal_id', 'v_quantity', 'v_weight', 'v_invoice', 'd_animal_id', 'd_quantity', 'd_death_cause_id', 'd_note', 'act_animal_id', 'act_boar', 'i_selected_room', 'i_birth_details', 'i_selected_details', 'i_all_selected', 'i_discard_remaining', 'i_feed_type', 'p_animal_id', 'p_target_role', 'q_batch_id', 'q_selected_items']);
         if ($this->ingresoType == 'RECRIA') $this->i_genetic_id = 7;
-        $this->loadInventory(); $this->loadBirths();
+        $this->loadInventory(); $this->loadBirths(); $this->loadQuarantineItems();
         if ($this->ingresoType == 'RECRIA' && $this->i_nave_id) $this->loadRecriaSection($this->i_nave_id);
         $this->updateFeedType();
     }
 
     public function truncateAllData()
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;'); Animal::truncate(); Movement::truncate(); BirthDetail::truncate(); Birth::truncate(); DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;'); \App\Models\AnimalDetail::truncate(); Animal::truncate(); Movement::truncate(); BirthDetail::truncate(); Birth::truncate(); \App\Models\Genetic::query()->update(['last_id_counter' => 0]); DB::statement('SET FOREIGN_KEY_CHECKS=1;');
         $this->dispatch('notify', ['icon' => 'success', 'title' => 'Éxito']); $this->loadInventory(); $this->loadBirths();
     }
 

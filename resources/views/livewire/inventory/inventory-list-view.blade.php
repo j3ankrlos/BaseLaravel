@@ -99,6 +99,7 @@
                         </th>
                         <th class="border-0 py-3">RAZA</th>
                         <th class="border-0 py-3">SEXO</th>
+                        <th class="border-0 py-3 text-warning">CODI-SEMEN</th>
                         <th class="border-0 py-3">LOTE SAP</th>
                         <th class="border-0 py-3 text-center">ACT. CURSO</th>
                         <th class="border-0 py-3 text-center">ORDEN</th>
@@ -131,6 +132,7 @@
                             <td class="inventory-data">{{ $animal->internal_id ?? '0' }}</td>
                             <td class="inventory-data fw-bold">{{ $animal->genetic?->name ?? 'F1' }}</td>
                             <td class="inventory-data">{{ $animal->sex ?? 'HEMBRA' }}</td>
+                            <td class="inventory-data fw-bold text-warning small">{{ $animal->semen->semen_code ?? '---' }}</td>
                             <td class="inventory-data text-nowrap"><code class="text-dark">{{ $animal->lote_sap ?: ($animal->source . 'EXP' . $calculatedAge . ($animal->internal_id ?: '0')) }}</code></td>
                             <td class="text-center inventory-data">{{ $animal->activo_excel ?? '---' }}</td>
                             <td class="text-center inventory-data">{{ $animal->order_number ?? '---' }}</td>

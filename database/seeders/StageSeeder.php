@@ -17,6 +17,10 @@ class StageSeeder extends Seeder
             ['name' => 'Recría'],
             ['name' => 'Levante'],
             ['name' => 'Pubertad'],
+            ['name' => 'Gestación'],
+            ['name' => 'Monta'],
+            ['name' => 'Reproducción'],
+            ['name' => 'Cuarentena'],
         ];
 
         foreach ($stages as $stage) {

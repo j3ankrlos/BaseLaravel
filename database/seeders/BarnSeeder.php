@@ -45,6 +45,7 @@ class BarnSeeder extends Seeder
             ['id' => 30, 'name' => 'MATER', 'farm' => 'GEN'],
             ['id' => 31, 'name' => 'REPRO', 'farm' => 'GEN'],
             ['id' => 32, 'name' => 'REEM', 'farm' => 'GEN'],
+            ['id' => 33, 'name' => 'CUARENTENA', 'farm' => 'GEN'],
         ];
 
         foreach ($barns as $b) {
